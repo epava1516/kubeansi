@@ -1,0 +1,22 @@
+---
+  - name: ensure kubelet file config exist
+    file:
+      path: /etc/default/kubelet
+      state: touch
+      mode: '0644'
+
+  - name: Configure node ip
+    lineinfile:
+      path: /etc/default/kubelet
+      line: KUBELET_EXTRA_ARGS=--node-ip={{ ansible_facts['default_ipv4']['address'] }}
+
+  - name: Restart kubelet
+    service:
+      name: kubelet
+      daemon_reload: yes
+      enabled: yes
+      state: restarted
+
+  - name: Restart nodes
+    reboot:
+...

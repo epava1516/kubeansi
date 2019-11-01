@@ -1,0 +1,1 @@
+test ansible_host=192.168.79.132 ansible_become_password="administrador"

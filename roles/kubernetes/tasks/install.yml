@@ -1,0 +1,8 @@
+---
+  - name: Initialize the Kubernetes cluster using kubeadm
+    command: kubeadm init --apiserver-advertise-address="{{ ansible_facts['default_ipv4']['address'] }}" --apiserver-cert-extra-sans="{{ ansible_facts['default_ipv4']['address'] }}"  --node-name k8s-master --pod-network-cidr=192.168.0.0/16
+
+  #- name: Install calico pod network
+  #  become: false
+  #  command: kubectl create -f https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/hosted/calico.yaml 
+...

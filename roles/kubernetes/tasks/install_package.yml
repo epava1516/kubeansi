@@ -1,0 +1,17 @@
+---
+  - name: Install repo
+    template:
+      src: kubernetes.repo.j2
+      dest: /etc/yum.repos.d/kubernetes.repo
+
+  - name: Install k8s
+    yum:
+      name: "{{ packages }}"
+      state: present
+      update_cache: yes
+    vars:
+      packages:
+      - kubelet
+      - kubeadm
+      - kubectl
+...

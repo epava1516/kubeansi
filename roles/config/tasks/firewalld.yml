@@ -1,0 +1,11 @@
+---
+- name: Open ports for kubernetes
+  firewalld:
+    zone: public
+    port: "{{ item }}/tcp"
+    permanent: yes
+    state: enabled
+  with_items:
+    - 6443
+    - 10250
+...

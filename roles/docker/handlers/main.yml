@@ -1,0 +1,8 @@
+---
+  - name: docker_status
+    service:
+      name: docker
+      daemon_reload: yes
+      enabled: yes
+      state: started
+...
