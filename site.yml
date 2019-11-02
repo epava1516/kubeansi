@@ -1,6 +1,6 @@
 ---
   - name: Test local
-    hosts: test
+    hosts: localhost
     become: true
     gather_facts: true
     tasks:
@@ -8,9 +8,7 @@
         include_role:
          name: "{{ roles }}"
         with_items:
-        - config
-        - docker
-        - kubernetes
+        - pxeboot
         loop_control:
           loop_var: roles
 ...

@@ -1,0 +1,20 @@
+DEVICE={{ kubeansi.lan_control.interface }}
+NAME=control
+TYPE=Ethernet
+BOOTPROTO=static
+IPADDR={{ kubeansi.lan_control.ip }}
+PREFIX={{ (kubeansi.lan_control.ip + '/' + kubeansi.lan_control.netmask) | ipaddr('prefix') }}
+{% if kubeansi.lan_control.gateway is defined and kubeansi.lan_control.gateway is not none and kubeansi.lan_control.gateway != false %}
+GATEWAY={{ kubeansi.lan_control.gateway }}
+DEFROUTE=yes
+{% else %}
+DEFROUTE=no
+{% endif %}
+ONBOOT=yes
+IPV6INIT=no
+IPV6_AUTOCONF=no
+IPV6_DEFROUTE=no
+IPV6_PEERDNS=no
+IPV6_PEERROUTES=no
+IPV6_FAILURE_FATAL=no
+

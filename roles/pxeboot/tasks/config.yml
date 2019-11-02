@@ -1,0 +1,133 @@
+---
+  - name: Set hostname {{ kubeansi.name }}.{{ kubeansi.domain }}
+    hostname:
+      name: "{{ kubeansi.name }}.{{ kubeansi.domain }}"
+
+  - name: Set timezone to UTC
+    timezone:
+      name: UTC
+
+  - name: Disable selinux
+    selinux:
+      state: disabled
+
+  - name: Disable DNS in sshd
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: "^UseDNS "
+      insertafter: "#UseDNS yes"
+      line: "UseDNS no"
+
+  - name: Uninstall packages
+    yum:
+      name:
+        - NetworkManager*
+        - firewalld
+      state: absent
+
+  - name: Install packages
+    yum:
+      name:
+        - wget
+        - curl
+        - vim
+        - net-tools
+        - traceroute
+        - dnsmasq
+        - syslinux
+        - nfs-utils
+        - rsync
+        - mlocate
+        - python2-pip
+        - python-devel
+        - python-netaddr
+        - gcc
+        - bind-utils
+        - bridge-utils
+        - lshw
+        - createrepo
+        - htop
+        - ntp
+        - ceph-common
+        - mariadb
+      state: present
+      update_cache: yes
+
+  - name: Upgrade all packages
+    yum:
+      name: '*'
+      state: latest
+
+  - name: Set IP in deploy PXE interface ({{ kubeansi.lan_pxe.interface }})
+    template:
+      src: ifcfg-kube-pxe.j2
+      dest: /etc/sysconfig/network-scripts/ifcfg-{{ kubeansi.lan_pxe.interface }}
+    register: set_ip_pxe
+
+  - name: Stop interface ({{ kubeansi.lan_pxe.interface }})
+    command: bash -c "ifdown {{ kubeansi.lan_pxe.interface }}"
+    when: set_ip_pxe.changed
+
+  - name: Start interface ({{ kubeansi.lan_pxe.interface }})
+    command: bash -c "ifup {{ kubeansi.lan_pxe.interface }}"
+    when: set_ip_pxe.changed
+
+  - name: Set IP in deploy control interface ({{ kubeansi.lan_control.interface }})
+    template:
+      src: ifcfg-kube-control.j2
+      dest: /etc/sysconfig/network-scripts/ifcfg-{{ kubeansi.lan_control.interface }}
+    register: set_ip_control
+
+  - name: Stop interface ({{ kubeansi.lan_control.interface }})
+    command: bash -c "ifdown {{ kubeansi.lan_control.interface }}"
+    when: set_ip_control.changed
+
+  - name: Start interface ({{ kubeansi.lan_control.interface }})
+    command: bash -c "ifup {{ kubeansi.lan_control.interface }}"
+    when: set_ip_control.changed
+
+  - name: Configure /etc/hosts
+    lineinfile:
+      path: /etc/hosts
+      regexp: " {{ kubeansi.name }} "
+      line: "{{ kubeansi.lan_pxe.ip }} {{ kubeansi.name }} {{ kubeansi.name }}.{{ kubeansi.domain }}"
+
+  - name: Configure /etc/resolv.conf
+    template:
+      src: resolv.conf.j2
+      dest: /etc/resolv.conf
+
+  - name: Enable system services
+    service:
+      enabled: true
+      state: started
+      name: "{{ item }}"
+    with_items:
+      - network
+      - dnsmasq
+      - rpcbind
+      - nfs-server
+      - ntpd
+
+  - name: Check SSH keypair
+    stat:
+      path: "{{ v_root.dir }}/.ssh/id_rsa"
+    register: rsa
+
+  - name: Generate SSH keypair
+    command: "ssh-keygen -q -t rsa -f {{ v_root.dir }}/.ssh/id_rsa -C '' -N ''"
+    when: rsa.stat.exists == false
+
+  - name: Copy id_rsa.pub to authorized_keys
+    shell: "cat {{ v_root.dir }}/.ssh/id_rsa.pub > {{ v_root.dir }}/.ssh/authorized_keys && chmod 600 {{ v_root.dir }}/.ssh/authorized_keys"
+    when: rsa.stat.exists == false
+
+  - name: Create file .ssh/config
+    blockinfile:
+      path: "{{ v_root.dir }}/.ssh/config"
+      create: yes
+      mode: 0600
+      block: |
+        Host *
+          StrictHostKeyChecking no
+          UserKnownHostsFile=/dev/null

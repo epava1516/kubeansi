@@ -1,0 +1,6 @@
+#
+domain {{ kubeansi.domain }}
+{% for ns in kubeansi.nameservers %}
+nameserver {{ ns }}
+{% endfor %}
+

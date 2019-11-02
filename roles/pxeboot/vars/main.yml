@@ -1,0 +1,23 @@
+---
+  kubeansi:
+    name: kubeansi
+    domain: example.local
+    lan_pxe:
+      interface: ens33
+      ip: 192.168.79.131
+      netmask: 255.255.255.0
+      gateway: false
+      dhcp_start: 172.17.2.11
+      dhcp_end: 172.17.2.254
+    lan_control:
+      interface: ens37
+      ip: 192.168.79.133
+      netmask: 255.255.255.0
+      gateway: 192.168.79.2
+    nameservers:
+      - 8.8.4.4
+      - 8.8.8.8
+
+  v_root:
+    dir: /root
+...
