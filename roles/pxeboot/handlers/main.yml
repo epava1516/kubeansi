@@ -4,4 +4,13 @@
       name: dnsmasq
       daemon_reload: yes
       state: restarted
+
+  - name: nfs_server_restart
+    service:
+      name: nfs-server
+      daemon_reload: yes
+      state: restarted
+    with_items:
+      - nfs-server
+      - rpcbind
 ...

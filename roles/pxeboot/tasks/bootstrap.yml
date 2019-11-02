@@ -1,0 +1,97 @@
+  - name: Create directories
+    file:
+      path: "{{ item }}"
+      state: directory
+    with_items:
+      - "{{ v_bootstrap.dir }}"
+      - "{{ v_bootstrap.dir }}/etc"
+#      - "{{ v_bootstrap.dir }}/etc/yum.repos.d"
+#      - "{{ v_bootstrap.dir }}/etc/yum.repos.d/OLD"
+      - "{{ v_bootstrap.dir }}/{{ v_root.dir }}/.ssh"
+      - "{{ v_bootstrap.dir }}/etc/ansible/facts.d"
+      - "{{ v_tftpboot.dir }}/bootstrap"
+
+  - name: Configure exports NFS
+    lineinfile:
+      path: "/etc/exports"
+      regexp: "^{{ v_bootstrap.dir }}"
+      line: "{{ v_bootstrap.dir }} *(rw,async,no_root_squash)"
+
+  - name: Add nfs driver to dracut.conf
+    lineinfile:
+      path: "{{ v_bootstrap.dir }}/etc/dracut.conf"
+      create: yes
+      regexp: '^add_dracutmodules+="nfs"'
+      line: 'add_dracutmodules+="nfs"'
+
+  - name: configure bootstrap /etc/fstab
+    template:
+      src: bootstrap_fstab.j2
+      dest: "{{ v_bootstrap.dir }}/etc/fstab"
+
+#  - name: Configure bootstrap repos
+#    copy:
+#      src: "/etc/yum.repos.d/"
+#      dest: "{{ v_bootstrap.dir }}/etc/yum.repos.d"
+#      remote_src: yes
+
+  - name: Install Bootstrap Centos7 Minimal
+    command: yum -y install @^minimal nfs-utils openssh-server net-tools --installroot="{{v_bootstrap.dir}}" --releasever=7
+#    args:
+#      warn: false
+
+# - name: Install Bootstrap Centos7 Minimal
+#   yum:
+#     name:
+#       - '@^minimal'
+#       - 'nfs-utils'
+#       - 'openssh-server'
+#       - 'net-tools'
+#     installroot: "{{v_bootstrap.dir}}"
+#     releasever: "7"
+
+  - name: Get vmlinuz_file
+    shell: "(cd {{  v_bootstrap.dir }}/boot; find . -type f -name vmlinuz-*.x86_64) | cut -d'/' -f2"
+    register: vmlinuz_file
+
+  - name: Get kernel version from vmlinuz_file
+    set_fact:
+      v_kernel: "{{ vmlinuz_file.stdout[8:100] }}"
+
+  - name: Copy boot files to bootstrap
+    synchronize:
+      src: "{{ v_bootstrap.dir }}/boot/{{ item.src }}"
+      dest: "{{ v_tftpboot.dir }}/bootstrap/{{ item.dest }}"
+      perms: no
+    with_items:
+      - { src: "initramfs-{{ v_kernel }}.img", dest: "initramfs.img" }
+      - { src: "symvers-{{ v_kernel }}.gz", dest: "symvers.gz" }
+      - { src: "System.map-{{ v_kernel }}", dest: "System.map" }
+      - { src: "vmlinuz-{{ v_kernel }}", dest: "vmlinuz" }
+
+  - name: Change file permissions
+    file:
+      path: "{{ v_tftpboot.dir }}/bootstrap/{{ item }}"
+      mode: 0755
+    with_items:
+      - "initramfs.img"
+      - "symvers.gz"
+      - "System.map"
+      - "vmlinuz"
+
+  - name: Create file authorized_keys
+    file:
+      path: "{{ v_bootstrap.dir }}/root/.ssh/authorized_keys"
+      state: touch
+      mode: 0600
+
+  - name: Add SSH keypair to bootstrap
+    lineinfile:
+      path: "{{ v_bootstrap.dir }}/root/.ssh/authorized_keys"
+      line: "{{ lookup('file', v_root.dir+'/.ssh/id_rsa.pub') }}"
+
+  - name: Create file {{ v_bootstrap.dir }}/etc/ansible/facts.d/kubeansi.fact
+    copy:
+      dest: "{{ v_bootstrap.dir }}/etc/ansible/facts.d/kubeansi.fact"
+      content: '{ "status": "bootstrap" }'
+    notify: nfs_server_restart
