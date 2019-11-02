@@ -1,0 +1,10 @@
+---
+  v_root:
+    dir: /root
+
+  v_tftpboot:
+    dir: /var/lib/tftpboot
+
+  v_bootstrap:
+    dir: /var/lib/nfs/bootstrap
+...

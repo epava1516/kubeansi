@@ -1,0 +1,59 @@
+---
+  - name: create directories
+    file:
+      path: "{{ item }}"
+      state: directory
+    with_items:
+      - "{{ v_tftpboot.dir }}/pxelinux.cfg"
+      - "{{ v_tftpboot.dir }}/bootstrap"
+      - "/etc/dnsmasq.kubeansi"
+
+  - name: synchronize files BIOS {{ v_tftpboot.dir }}
+    synchronize:
+      src: "/usr/share/syslinux/{{ item }}"
+      dest: "{{ v_tftpboot.dir }}/{{ item }}"
+      perms: false
+    with_items:
+      - pxelinux.0
+      - menu.c32
+      - chain.c32
+
+  - name: dnsmasq set configuration file
+    template:
+      src: dnsmasq.conf.j2
+      dest: /etc/dnsmasq.conf
+      validate: 'dnsmasq --test --conf-file=%s'
+
+  - name: Modify /usr/lib/systemd/system/dnsmasq.service
+    lineinfile:
+      path: /usr/lib/systemd/system/dnsmasq.service
+      regexp: "^ExecStart=.*"
+      line: "ExecStart=/usr/sbin/dnsmasq -k --dhcp-hostsdir=/etc/dnsmasq.kubeansi"
+      state: present
+    register: dnsmasq_service
+
+  - name: Reload systemd
+    command: systemctl daemon-reload
+    when: dnsmasq_service.changed
+
+  - name: dnsmasq set file {{ v_tftpboot.dir }}/pxelinux.cfg/default
+    template:
+      src: pxelinux_cfg_default.j2
+      dest: "{{ v_tftpboot.dir }}/pxelinux.cfg/default"
+
+  - name: Generar fichero {{ v_tftpboot.dir }}/pxelinux.cfg/installed
+    template:
+      src: pxelinux_cfg_installed.j2
+      dest: "{{ v_tftpboot.dir }}/pxelinux.cfg/installed"
+
+  - name: dnsmasq set file {{ v_tftpboot.dir }}/grub.cfg
+    template:
+      src: grub_cfg_default.j2
+      dest: "{{ v_tftpboot.dir }}/grub.cfg"
+
+  - name: dnsmasq set file {{ v_tftpboot.dir }}/grub.cfg-installed
+    template:
+      src: grub_cfg_installed.j2
+      dest: "{{ v_tftpboot.dir }}/grub.cfg-installed"
+    notify: restart_dnsmasq
+...

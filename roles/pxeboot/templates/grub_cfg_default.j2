@@ -1,0 +1,24 @@
+# boot bootstrap EFI
+set default="0"
+
+function load_video {
+  insmod efi_gop
+  insmod efi_uga
+  insmod video_bochs
+  insmod video_cirrus
+  insmod all_video
+}
+
+load_video
+set gfxpayload=keep
+insmod gzio
+insmod part_gpt
+insmod ext2
+
+set timeout=5
+
+menuentry 'bootstrap' --class fedora --class gnu-linux --class gnu --class os {
+        linuxefi bootstrap/vmlinuz root=nfs:{{ kubeansi.lan_pxe.ip }}:{{ v_bootstrap.dir }},nfsvers=3 rw selinux=0 ip=dhcp ipv6.disable=1
+        initrdefi bootstrap/initramfs.img
+}
+

@@ -1,0 +1,13 @@
+# boot bootstrap
+default menu.c32
+prompt 0
+menu title bootstrap
+
+ontimeout bootstrap
+timeout 10   # 1 segundos
+
+label bootstrap
+        menu label bootstrap
+        kernel bootstrap/vmlinuz
+        append text root=nfs:{{ kubeansi.lan_pxe.ip }}:{{ v_bootstrap.dir }},nfsvers=3 initrd=bootstrap/initramfs.img rw selinux=0 ip=dhcp ipv6.disable=1
+
