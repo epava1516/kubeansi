@@ -4,11 +4,11 @@
     domain: example.local
     lan_pxe:
       interface: ens33
-      ip: 192.168.79.131
+      ip: 192.168.5.1
       netmask: 255.255.255.0
       gateway: false
-      dhcp_start: 172.17.2.11
-      dhcp_end: 172.17.2.254
+      dhcp_start: 192.168.5.100
+      dhcp_end: 192.168.5.200
     lan_control:
       interface: ens37
       ip: 192.168.79.133

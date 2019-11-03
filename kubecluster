@@ -1,0 +1,539 @@
+#!/bin/bash
+# kubecluster
+#
+VERSION="3.3 20191011"
+PROG=`basename $0`
+SSH="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+FASE=""
+COMANDO=""
+COLOR_RED=$'\e[1;31m'
+COLOR_GREEN=$'\e[1;32m'
+COLOR_CYAN=$'\e[1;36m'
+COLOR_END=$'\e[0m'
+STATUS_OK="${COLOR_GREEN}OK${COLOR_END}"
+STATUS_ERROR="${COLOR_RED}ERROR${COLOR_END}"
+#
+function help_show() {
+	tabs 4
+	echo -e "Use: $PROG [options] <phase> <command> [args]"
+	echo -e "Options:"
+    echo -e "\t-v|--version \t=== Print program version"
+    echo -e "\t-h|--help \t\t=== Print help"
+    echo -e "Phase and command:"
+	echo -e ""
+	echo -e "\t$PROG server config \t\t\t\t\t\t\t\t === Edit PXE installer config"
+	echo -e "\t$PROG server setup \t\t\t\t\t\t\t\t === Set PXE installer setup"
+	echo -e "\t$PROG server init [--start][--stop][--restart] \t === Show PXE installer status"
+	echo -e "\t$PROG server list \t\t\t\t\t\t\t\t === List nodes"
+	echo -e "\t$PROG server ping \t\t\t\t\t\t\t\t === Check node conection"
+	echo -e "\t$PROG server set-hostname <MAC> <HOSTNAME> \t\t === Set node hostname"
+	echo -e "\t$PROG server set-ip <MAC> <IP>\t\t\t\t\t === Set node ip"
+	echo -e "\t$PROG server remove <MAC> \t\t\t\t\t\t === Remove node from server list"
+    echo -e ""
+    echo -e "\t$PROG boot get-config \t\t\t\t\t\t\t\t\t\t\t\t === Get all nodes config"
+	echo -e "\t$PROG boot edit-config [--network][--storage] \t\t\t\t\t\t === Edit node config"
+    echo -e "\t$PROG boot install [--reinstall] node1 [node...] \t\t\t\t\t\t === Install nodes and more actions"
+	echo -e "\t$PROG boot destroy [--yes-i-really-really-mean-it] node1 [node...] \t === Return nodes to bootstrap"
+	echo -e "\t$PROG boot reconfigure [--network][--storage] \t\t\t\t\t\t === Reconfigure network/disk node configuration"
+    echo -e "\t$PROG boot reboot node1 [node...] \t\t\t\t\t\t\t\t\t === Reboot nodes"
+	echo -e ""
+	exit 1
+}
+
+function _complete() {
+	cat << 'EOF'
+        _deployer_nodes_bootstrap_mac() {
+		echo $(grep bootstrap /etc/nodes | cut -d' ' -f2)
+	}
+        _deployer_nodes_bootstrap() {
+		echo $(grep bootstrap /etc/nodes | cut -d' ' -f1)
+	}
+        _deployer_nodes_installed() {
+		echo $(grep installed /etc/nodes | cut -d' ' -f1)
+	}
+	_deployer_complete() {
+		COMPREPLY=()
+		        cur_word="${COMP_WORDS[COMP_CWORD]}"
+		        prev_word="${COMP_WORDS[COMP_CWORD-1]}"
+		        prev2_word="${COMP_WORDS[COMP_CWORD-2]}"
+			case "${prev_word}" in
+			${PROG})
+				COMPREPLY=( $(compgen -W 'server boot -h -v' ${cur_word}) )
+				;;
+			server)
+				COMPREPLY=( $(compgen -W 'config setup init list ping set-hostname set-ip remove' ${cur_word}) )
+				;;
+			boot)
+				COMPREPLY=( $(compgen -W 'get-config edit-config install reconfigure reboot destroy' ${cur_word}) )
+				;;
+                        *)
+				case "${prev2_word}_${prev_word}" in
+				discover_set-ip|discover_set-hostnamediscover_remove)
+					COMPREPLY=`_deployer_nodes_bootstrap_mac`
+					;;
+				provision_install|discover_get-setup)
+					COMPREPLY=`_deployer_nodes_bootstrap`
+					;;
+                                provision_reconfigure-network|provision_reconfigure-storage)
+                                        COMPREPLY=`_deployer_nodes_installed`
+                                        ;;
+				provision_remove|provision_reinstall)
+					COMPREPLY=`_deployer_nodes_installed`
+					;;
+                                deploy_node-add|deploy_node-remove)
+                                        COMPREPLY=`_deployer_nodes_installed`
+                                        ;;
+				deploy_install)
+					COMPREPLY=( $(compgen -W '--bootstrap-servers --prechecks --pull --deploy' ${cur_word}) )
+					;;
+				deploy_destroy)
+					COMPREPLY=( $(compgen -W '--nclude-images --reboot' ${cur_word}) )
+					;;
+				esac
+			esac
+
+	}
+	complete -F _deployer_complete ${PROG}
+EOF
+}
+
+function version_show() {
+	echo "version: $VERSION"
+	exit 0
+}
+#
+Error() {
+	echo -e ${COLOR_RED}$*${COLOR_END}
+	exit 1
+}
+#
+while getopts ":hv-:" OPTCHAR; do
+	case "${OPTCHAR}" in
+		-)
+			case "${OPTARG}" in
+				version) version_show;;
+				help) help_show;;
+			esac;;
+		v) version_show;;
+		h) help_show;;
+	esac
+done
+[ -z "$1" ] && help_show
+#
+############################################################################################################
+function replace_line() {
+	local FILE=$1; shift
+	local PATTERN=$1; shift
+	local NEW_LINE=$*
+	local NEW=$(echo "${NEW_LINE}" | sed 's/\//\\\//g')
+	touch "${FILE}"
+	sed -i '/'"${PATTERN}"'/{s/.*/'"${NEW}"'/;h};${x;/./{x;q100};x}' "${FILE}"
+	if [[ $? -ne 100 ]] && [[ ${NEW_LINE} != '' ]]; then
+		echo "${NEW_LINE}" >> "${FILE}"
+	fi
+}
+function remove_line() {
+	local FILE=$1; shift
+	local PATTERN=$*
+	sed -i "/${PATTERN}/d" $FILE
+}
+function dnsmasq_reload() {
+	pkill --signal SIGHUP --pidfile /var/run/dnsmasq.pid
+}
+function dnsmasq_restart() {
+	systemctl restart dnsmasq
+}
+function ip_ping() {
+	if /usr/bin/ping -c 1 -w 1 $1 &>/dev/null; then
+		echo $STATUS_OK
+	else
+		echo $STATUS_ERROR
+	fi
+}
+function ip_ansible_ping() {
+	if ansible -i ~/ansible/inventory.all $1 -m ping &>/dev/null; then
+		echo $STATUS_OK
+	else
+		echo $STATUS_ERROR
+	fi
+}
+############################################################################################################
+function server_config(){
+	vi ~/kubeansi/roles/pxeboot/vars/main.yml
+}
+
+function server_setup(){
+	cd ~/kubeansi
+	ansible --version
+	ansible-playbook -l localhost setup.yml $@ || echo " ### ERROR ### "
+}
+
+function server_init() {
+	if [[ $# -eq 0 ]]; then
+		help_show
+	fi
+	while [[ $# -gt 0 ]]; do
+		option="$1"
+		case $option in
+			--start)   systemctl start dnsmasq; shift;;
+			--stop)    systemctl stop dnsmasq; shift;;
+			--restart) systemctl restart dnsmasq; shift;;
+			--status)  systemctl status dnsmasq; shift;;
+			*)         help_show;;
+		esac
+		done
+}
+
+function server_list() {
+	sort /etc/nodes
+}
+
+function server_ping() {
+	sort /etc/nodes |
+	while read NAME MAC IP STATUS TYPE FECHA HORA; do
+		echo $NAME $MAC $IP $STATUS $TYPE $FECHA $HORA --- ping:`ip_ping $NAME` ansible:`ip_ansible_ping $NAME`
+	done
+}
+
+function server_set-hostname() {
+	MAC=$1
+	[[ $MAC =~ ^([0-9A-Fa-f]{2}[-]){5}([0-9A-Fa-f]{2})$ ]] && MAC=${MAC//-/:}
+	if [[ $MAC =~ ^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$ ]]; then
+		MAC2=${MAC//:/-}
+		NAME=$2
+		IP=`grep ${MAC2} /etc/hosts 2>/dev/null | cut -d' ' -f1`
+		[ -z "$IP" ] && Error "No conozco la MAC '$MAC'"
+		replace_line /etc/hosts $MAC2 "${IP} ${NAME} ${MAC2}"
+		STATUS=`egrep $MAC2 /etc/nodes | cut -d' ' -f4`
+		TYPE=`egrep $MAC2 /etc/nodes | cut -d' ' -f5`
+		FH=`date +"%Y-%m-%d %H:%M:%S"`
+		replace_line /etc/nodes $MAC2 "$NAME $MAC2 $IP ${STATUS:-undefined} $TYPE $FH"
+		FP=`ssh-keyscan -t ecdsa $NAME 2>/dev/null | tail -1`
+		replace_line ${HOME}/.ssh/known_hosts ".*$NAME .*" "${MAC2},${IP},${FP}"
+		NAME_OLD=`$SSH $MAC2 hostname`
+		if [ "$NAME" != "$NAME_OLD" ] ; then
+			$SSH $MAC2 "hostname $NAME"
+			[ -f ~/provision/storage.yml ] && sed -i "s/^${NAME_OLD}:/${NAME}:/" ~/provision/storage.yml
+			[ -f ~/provision/network.yml ] && sed -i "s/^${NAME_OLD}:/${NAME}:/" ~/provision/network.yml
+		fi
+		dnsmasq_restart
+		echo "${MAC},${IP},${NAME}" >/etc/dnsmasq.kubeansi/${MAC2}
+	else
+		Error "'$MAC' No es una dirección MAC correcta"
+	fi
+}
+
+function server_set-ip() {
+	MAC=$1
+	[[ $MAC =~ ^([0-9A-Fa-f]{2}[-]){5}([0-9A-Fa-f]{2})$ ]] && MAC=${MAC//-/:}
+	if [[ $MAC =~ ^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$ ]]; then
+		MAC2=${MAC//:/-}
+		IP=$2
+		EXISTE=`grep ${MAC2} /etc/hosts 2>/dev/null`
+		[ -z "$EXISTE" ] && Error "No conozco la MAC '$MAC'"
+		[[ $IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || Error "IP '$IP' no válida"
+		EXISTE=`grep "^$IP " /etc/hosts 2>/dev/null`
+		[ ! -z "$EXISTE" ] && Error "IP ya asignada: $EXISTE"
+				IP_OLD=`grep $MAC2 /etc/hosts | cut -d' ' -f1`
+		NAME=`grep "${MAC2}" /etc/hosts | cut -d' ' -f2`
+		echo "${MAC},${IP},${NAME}" >/etc/dnsmasq.kubeansi/${MAC2}
+		STATUS=`egrep $MAC2 /etc/nodes | cut -d' ' -f4`
+		TYPE=`egrep $MAC2 /etc/nodes | cut -d' ' -f5`
+		FH=`date +"%Y-%m-%d %H:%M:%S"`
+		replace_line /etc/nodes $MAC2 "$NAME $MAC2 $IP ${STATUS:-undefined} $TYPE $FH"
+		replace_line /etc/hosts $MAC2 "${IP} ${NAME} ${MAC2}"
+		dnsmasq_restart
+		$SSH ${IP_OLD} reboot
+	else
+		Error "'$MAC' No es una dirección MAC correcta"
+	fi
+}
+
+function server_remove() {
+	MAC=$1
+	[[ $MAC =~ ^([0-9A-Fa-f]{2}[-]){5}([0-9A-Fa-f]{2})$ ]] && MAC=${MAC//-/:}
+	if [[ $MAC =~ ^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$ ]]; then
+		MAC2=${MAC//:/-}
+		remove_line /etc/nodes $MAC2
+		remove_line ${HOME}/.ssh/known_hosts $MAC2
+		remove_line /etc/hosts $MAC2
+		remove_line /var/lib/dnsmasq/dnsmasq.leases $MAC
+		rm /var/lib/tftpboot/pxelinux.cfg/01-$MAC2 2>/dev/null
+		rm /var/lib/tftpboot/grub.cfg-01-$MAC2 2>/dev/null
+		rm /etc/dnsmasq.kubeansi/$MAC2 2>/dev/null
+		systemctl restart dnsmasq
+	else
+		Error "'$MAC' No es una dirección MAC correcta"
+	fi
+}
+
+############################################################################################################
+function boot_get-config() {
+	NAMES=`echo $* | tr ' ' ,`
+	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
+	ansible-playbook -i ~/ansible/inventory.all $LIMIT ~/ansible/get-setup.yml
+}
+
+function boot_edit-config() {
+	if [[ $# -eq 0 ]]; then
+		help_show
+	fi
+	while [[ $# -gt 0 ]]; do
+			option="$1"
+			case $option in
+					--network) vi ~/provision/network.yml; shift;;
+					--storage) vi ~/provision/storage.yml; shift;;
+					*) help_show;;
+			esac
+	done
+}
+
+function boot_install() {
+	NAMES=`echo $* | tr ' ' ,`
+	[ -z "$NAMES" ] && Error "Debe indicar los nodos a instalar"
+	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
+	ansible-playbook -i ~/ansible/inventory.discover $LIMIT ~/ansible/provision-install.yml || Error "ERROR al ejecutar provision-install.yml"
+}
+
+function boot_reinstall() {
+	NAMES=`echo $* | tr ' ' ,`
+	[ -z "$NAMES" ] && Error "Debe indicar los nodos a reinstalar"
+	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
+	ansible-playbook -i ~/ansible/inventory.installed $LIMIT ~/ansible/provision-reinstall.yml || Error "ERROR al ejecutar provision-reinstall.yml"
+}
+function boot_reconfigure-network() {
+	NAMES=`echo $* | tr ' ' ,`
+	[ -z "$NAMES" ] && Error "Debe indicar los nodos a reconfigurar"
+	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
+	ansible-playbook -i ~/ansible/inventory.installed $LIMIT ~/ansible/reconfigure-network.yml || Error "ERROR al ejecutar reconfigure-network.yml"
+}
+function boot_reconfigure-storage() {
+        CONFIRM=false
+        NAMES=""
+        while [[ $# -gt 0 ]]; do
+                option="$1"
+                case $option in
+                        --delete-ceph) CONFIRM=true; shift;;
+                        --*) shift;;
+                        *) NAMES="$NAMES $option"; shift;;
+                esac
+        done
+	[ "$CONFIRM" != true ] && help_show
+	[ -z "$NAMES" ] && Error "Debe indicar los nodos a reconfigurar"
+	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
+	ansible-playbook -i ~/ansible/inventory.installed $LIMIT ~/ansible/reconfigure-storage.yml || Error "ERROR al ejecutar reconfigure-storage.yml"
+}
+
+function boot_reboot() {
+	NAMES=`echo $* | tr ' ' ,`
+	[ -z "$NAMES" ] && Error "Debe indicar los nombres a rearrancar"
+	[ -z "$NAMES" ] && help_show
+	LIMIT="--limit $NAMES"
+	ansible-playbook -i ~/ansible/inventory.all $LIMIT ~/ansible/reboot.yml
+}
+
+function boot_destroy() {
+	NAMES=`echo $* | tr ' ' ,`
+	[ -z "$NAMES" ] && Error "Debe indicar los nodos a eliminar"
+	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
+	ansible-playbook -i ~/ansible/inventory.all $LIMIT ~/ansible/provision-remove.yml || Error "ERROR al ejecutar provision-remove.yml"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+########
+########
+function deploy_node-add() {
+	NODO=$1
+	[ -z "$NODO" ] && Error "Debe indicar el nodo a añadir"
+        shift
+        ROLES=""
+        while [[ $# -gt 0 ]]; do
+                opt="$1"
+                case $opt in
+                        control) ROLES="$ROLES,$opt"; shift;;
+                        compute) ROLES="$ROLES,$opt"; shift;;
+                        storage) ROLES="$ROLES,$opt"; shift;;
+                        *) Error "No existe el rol '$opt', permitidos control|compute|storage";;
+                esac
+        done
+        [ -z "$ROLES" ] && Error "Debe indicar por lo menos un rol"
+        ROLES=${ROLES:1}
+	ansible-playbook -i ~/ansible/inventory.installed --limit $NODO -e roles=[${ROLES}] ~/ansible/deploy-node-add.yml || Error "ERROR al ejecutar deploy-node-add.yml"
+}
+function deploy_node-remove() {
+        NODO=$1
+        [ -z "$NODO" ] && Error "Debe indicar el nodo a eliminar"
+	ansible-playbook -i ~/ansible/inventory.installed --limit $NODO ~/ansible/deploy-node-remove.yml || Error "ERROR al ejecutar deploy-node-remove.yml"
+}
+function deploy_node-list() {
+	cat ~/environment/roles.yml 2>/dev/null
+}
+########
+function deploy-save() {
+        # Copiar los ficheros de despliegue
+        DIRBK=`date +"%Y%m%d%H%M%S"`
+        mkdir -p ~/environment/${DIRBK}
+        cp -p ~/provision/network.yml ~/environment/${DIRBK}
+        cp -p ~/provision/storage.yml ~/environment/${DIRBK}
+        cp -p ~/environment/roles.yml ~/environment/${DIRBK}
+        cp -p ~/environment/multinode.yml ~/environment/${DIRBK}
+        cp -p ~/ansible/vars/deployer.yml ~/environment/${DIRBK}
+        cp -pr /etc/kolla/* ~/environment/${DIRBK}
+	echo "Backup saved in ~/environment/${DIRBK}"
+}
+function deploy_install() {
+        DEPLOY_BOOTSTRAP_SERVERS=false
+	DEPLOY_PRECHECKS=false
+        DEPLOY_PULL=false
+        DEPLOY_DEPLOY=false
+        while [[ $# -gt 0 ]]; do
+           	option="$1"
+		case $option in
+			--bootstrap-servers) DEPLOY_BOOTSTRAP_SERVERS=true; shift;;
+			--prechecks) DEPLOY_PRECHECKS=true; shift;;
+			--pull) DEPLOY_PULL=true; shift;;
+                        --deploy) DEPLOY_DEPLOY=true; shift;;
+                        *) help_show;;
+		esac
+        done
+	if [ ${DEPLOY_BOOTSTRAP_SERVERS} = false -a ${DEPLOY_PRECHECKS} = false -a ${DEPLOY_PULL} = false -a ${DEPLOY_DEPLOY} = false ]; then
+		DEPLOY_BOOTSTRAP_SERVERS=true
+		DEPLOY_PRECHECKS=true
+		DEPLOY_PULL=true
+		DEPLOY_DEPLOY=true
+	fi
+	STATUS="=========================================================================================$COLOR_END"
+        ansible-playbook -i ~/ansible/inventory.installed ~/ansible/pre-deploy.yml || Error "ERROR al ejecutar pre-deploy"
+        deploy-save
+	#
+        if [ $DEPLOY_BOOTSTRAP_SERVERS = true ] ; then
+		kolla-ansible -i ~/environment/multinode.yml bootstrap-servers
+		if [ $? == 0 ]; then
+			STATUS="$STATUS\nbootstrap-servers: $STATUS_OK"
+		else
+			STATUS="$STATUS\nbootstrap-servers: $STATUS_ERROR"
+			Error $STATUS
+		fi
+	fi
+        if [ $DEPLOY_PRECHECKS = true ] ; then
+		kolla-ansible -i ~/environment/multinode.yml prechecks
+		if [ $? == 0 ]; then
+			STATUS="$STATUS\nprechecks: $STATUS_OK"
+		else
+			STATUS="$STATUS\nprechecks: $STATUS_ERROR"
+			Error $STATUS
+		fi
+	fi
+        if [ $DEPLOY_PULL = true ] ; then
+		kolla-ansible -i ~/environment/multinode.yml pull
+		if [ $? == 0 ]; then
+			STATUS="$STATUS\npull: $STATUS_OK"
+		else
+			STATUS="$STATUS\npull: $STATUS_ERROR"
+			Error $STATUS
+		fi
+	fi
+        if [ $DEPLOY_DEPLOY = true ] ; then
+		kolla-ansible -i ~/environment/multinode.yml deploy
+		if [ $? == 0 ]; then
+			STATUS="$STATUS\ndeploy: $STATUS_OK"
+		else
+			STATUS="$STATUS\ndeploy: $STATUS_ERROR"
+			Error $STATUS
+		fi
+	fi
+	STATUS="$STATUS\n${COLOR_GREEN}=========================================================================================${COLOR_END}"
+	echo -e $STATUS
+	exit 0
+}
+function deploy_reconfigure() {
+        ansible-playbook -i ~/ansible/inventory.installed ~/ansible/pre-deploy.yml
+        deploy-save
+	if [ $? != 0 ]; then
+		Error "ERROR al ejecutar el playbook ~/ansible/pre-deploy.yml"
+	fi
+	kolla-ansible -i ~/environment/multinode.yml reconfigure $* || Error "ERROR al ejecutar reconfigure"
+}
+function deploy_post-deploy() {
+	kolla-ansible post-deploy
+	if [ $? != 0 ]; then
+		Error "ERROR al ejecutar kolla-ansible post-deploy"
+	fi
+        grep -qxF 'OS_ENDPOINT_TYPE' /etc/kolla/admin-openrc.sh || echo 'export OS_ENDPOINT_TYPE="internalURL"' >> /etc/kolla/admin-openrc.sh
+	source /etc/kolla/admin-openrc.sh
+	#
+        # Crear el tipo de volumen de Ceph y asociarle el backend
+	cinder type-create Vol_ceph
+	cinder type-key Vol_ceph set volume_backend_name="rbd-1"
+        #
+	ansible-playbook -i ~/environment/multinode.yml ~/ansible/post-deploy.yml
+	if [ $? != 0 ]; then
+		Error "ERROR al ejecutar el playbook post-deploy"
+	fi
+	/usr/share/kolla-ansible/init-runonce
+	if [ $? == 0 ]; then
+		echo -e "\n========================================================================================="
+		echo -e "\npost-deploy: OK"
+	else
+		echo -e "\n========================================================================================="
+		Error "\npost-deploy: ERROR"
+	fi
+}
+function deploy_check() {
+	kolla-ansible -i ~/environment/multinode.yml check
+	if [ $? != 0 ]; then
+		Error "ERROR al ejecutar kolla-ansible check"
+	fi
+}
+function deploy_destroy() {
+	CONFIRM=false
+        DESTROY_OPTIONS=""
+        REBOOT=false
+        while [[ $# -gt 0 ]]; do
+           	option="$1"
+		case $option in
+			--yes-i-really-really-mean-it) CONFIRM=true; shift;;
+			--include-images) DESTROY_OPTIONS="$DESTROY_OPTIONS --include-images"; shift;;
+			--reboot) REBOOT=true; shift;;
+                        *) help_show;;
+		esac
+        done
+	[ "$CONFIRM" != true ] && help_show
+	kolla-ansible -i ~/environment/multinode.yml destroy --limit 'all:!localhost' --yes-i-really-really-mean-it $DESTROY_OPTIONS
+	if [ $? != 0 ]; then
+		Error "ERROR al ejecutar kolla-ansible destroy"
+	fi
+        ansible-playbook -i ~/ansible/inventory.installed ~/ansible/reconfigure-storage.yml
+	[ $REBOOT = true ] && ansible-playbook -i ~/environment/multinode.yml --limit 'all:!localhost' ~/ansible/reboot.yml
+
+	exit 0
+}
+#######################################################################################
+#
+FASE=$1 ; shift
+TYPE=`type -t ${FASE}`
+if [ "$TYPE" == "function" ]; then
+	${FASE} $*
+else
+	COMANDO=$1 ; shift
+	TYPE=`type -t ${FASE}_${COMANDO}`
+	if [ "$TYPE" == "function" ]; then
+		${FASE}_${COMANDO} $*
+	else
+		help_show
+	fi
+fi
+exit 0
+
