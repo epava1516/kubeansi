@@ -1,0 +1,78 @@
+---
+  - name: Create directories
+    file:
+      path: "{{ item }}"
+      state: directory
+    with_items:
+      - "{{ v_root.dir }}/html"
+      - "{{ v_root.dir }}/html/centos7"
+      - "{{ v_root.dir }}/html/centos7/LiveOS"
+      - "{{ v_root.dir }}/html/centos7/repodata"
+      - "{{ v_root.dir }}/html/centos7/Packages"
+      - "{{ v_tftpboot.dir }}/centos7"
+      - "{{ v_tftpboot.dir }}/uefi"
+    tags: pkg
+
+  - name: Bajar los ficheros para el arranque BIOS de CentOS a {{ v_tftpboot.dir }}/centos7
+    get_url:
+      url: "{{ v_centos7.repo_base }}/images/pxeboot/{{ item }}"
+      dest: "{{ v_tftpboot.dir }}/centos7/{{ item }}"
+    with_items:
+      - vmlinuz
+      - initrd.img
+    tags: pkg
+
+  - name: Bajar los ficheros para el arranque UEFI de CentOS a {{ v_tftpboot.dir }}/centos7
+    get_url:
+      url: "{{ v_centos7.repo_base }}/EFI/BOOT/{{ item }}"
+      dest: "{{ v_tftpboot.dir }}/{{ item }}"
+    with_items:
+      - BOOTX64.EFI
+      - grubx64.efi
+    tags: pkg
+
+  - name: Bajar la imagen de instalación de CentOS a {{ v_root.dir }}/html/centos7
+    get_url:
+      url: "{{ v_centos7.repo_base }}/LiveOS/squashfs.img"
+      dest: "{{ v_root.dir }}/html/centos7/LiveOS/squashfs.img"
+    tags: pkg
+
+  - name: Get packages downloaded
+    shell: "ls -1 {{ v_root.dir }}/html/centos7/Packages"
+    register: down_pkgs
+    changed_when: false
+    tags: pkg
+
+  - name: Copy custom repos to local repo
+    template:
+      src: "{{ item }}.j2"
+      dest: "{{ v_bootstrap.dir }}/etc/yum.repos.d/{{ item }}"
+    with_items:
+      - docker-ce.repo
+      - kubernetes.repo
+
+  - name: Download custom packages to local repo
+    command: "repotrack --download_path={{ v_root.dir }}/html/centos7/Packages {{ item }}"
+    with_items:
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - kubelet
+      - kubeadm
+      - kubectl
+    when: item+'.rpm' not in down_pkgs.stdout_lines
+    tags: pkg
+
+  - name: Generate file comps.xml
+    template:
+      src: comps.xml.j2
+      dest: "{{ v_root.dir }}/html/centos7/Packages/comps.xml"
+    tags: pkg
+
+  - name: Regenerate repo indexes
+    command: "createrepo --groupfile {{ v_root.dir }}/html/centos7/Packages/comps.xml {{ v_root.dir }}/html/centos7"
+    tags: pkg
+...

@@ -5,8 +5,6 @@
     with_items:
       - "{{ v_bootstrap.dir }}"
       - "{{ v_bootstrap.dir }}/etc"
-#      - "{{ v_bootstrap.dir }}/etc/yum.repos.d"
-#      - "{{ v_bootstrap.dir }}/etc/yum.repos.d/OLD"
       - "{{ v_bootstrap.dir }}/{{ v_root.dir }}/.ssh"
       - "{{ v_bootstrap.dir }}/etc/ansible/facts.d"
       - "{{ v_tftpboot.dir }}/bootstrap"
@@ -29,26 +27,40 @@
       src: bootstrap_fstab.j2
       dest: "{{ v_bootstrap.dir }}/etc/fstab"
 
-#  - name: Configure bootstrap repos
-#    copy:
-#      src: "/etc/yum.repos.d/"
-#      dest: "{{ v_bootstrap.dir }}/etc/yum.repos.d"
-#      remote_src: yes
+  - name: Copy custom repos to local repo
+    template:
+      src: "{{ item }}.j2"
+      dest: "/etc/yum.repos.d/{{ item }}"
+    with_items:
+      - docker-ce.repo
+      - kubernetes.repo
 
   - name: Install Bootstrap Centos7 Minimal
-    command: yum -y install @^minimal nfs-utils openssh-server net-tools --installroot="{{v_bootstrap.dir}}" --releasever=7
-#    args:
-#      warn: false
+    command: yum -y install @^minimal nfs-utils openssh-server net-tools --installroot="{{ v_bootstrap.dir }}" --releasever=7
+    args:
+      warn: False
 
-# - name: Install Bootstrap Centos7 Minimal
-#   yum:
-#     name:
-#       - '@^minimal'
-#       - 'nfs-utils'
-#       - 'openssh-server'
-#       - 'net-tools'
-#     installroot: "{{v_bootstrap.dir}}"
-#     releasever: "7"
+  - name: Copy custom repos to bootstrap repo
+    template:
+      src: "{{ item }}.j2"
+      dest: "{{ v_bootstrap.dir }}/etc/yum.repos.d/{{ item }}"
+    with_items:
+      - docker-ce.repo
+      - kubernetes.repo
+
+  - name: Install custom packages
+    yum:
+      name:
+        - docker-ce-cli
+        - containerd.io
+        - kubelet
+        - kubeadm
+        - kubectl
+        - lvm2
+        - yum-utils
+        - device-mapper-persistent-data
+      installroot: "{{v_bootstrap.dir}}"
+      releasever: "7"
 
   - name: Get vmlinuz_file
     shell: "(cd {{  v_bootstrap.dir }}/boot; find . -type f -name vmlinuz-*.x86_64) | cut -d'/' -f2"
