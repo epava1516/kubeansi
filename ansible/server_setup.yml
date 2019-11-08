@@ -1,0 +1,10 @@
+---
+  - name: Setup PXE server
+    hosts: localhost
+    become: true
+    gather_facts: true
+    tasks:
+      - name: config
+        include_role:
+         name: pxeboot
+...

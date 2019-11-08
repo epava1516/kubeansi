@@ -159,13 +159,12 @@ function ip_ansible_ping() {
 }
 ############################################################################################################
 function server_config(){
-	vi ~/kubeansi/roles/pxeboot/vars/main.yml
+	vi ansible/roles/pxeboot/vars/main.yml
 }
 
 function server_setup(){
-	cd ~/kubeansi
 	ansible --version
-	ansible-playbook -l localhost setup.yml $@ || echo " ### ERROR ### "
+	ansible-playbook -l localhost ansible/server_setup.yml $@ || echo " ### ERROR ### "
 }
 
 function server_init() {
