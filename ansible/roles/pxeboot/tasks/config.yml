@@ -131,3 +131,16 @@
         Host *
           StrictHostKeyChecking no
           UserKnownHostsFile=/dev/null
+
+  - name: Create file /etc/nodes
+    file:
+      path: /etc/nodes
+      state: touch
+
+  - name: Create directories
+    file:
+      path: "{{ item }}"
+      state: directory
+    with_items:
+      - "{{ v_root.dir }}/environment"
+      - "{{ v_root.dir }}/provision"

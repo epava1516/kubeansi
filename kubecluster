@@ -159,7 +159,7 @@ function ip_ansible_ping() {
 }
 ############################################################################################################
 function server_config(){
-	vi ansible/roles/pxeboot/vars/main.yml
+	vi ansible/group_vars/all.yml
 }
 
 function server_setup(){
@@ -270,7 +270,7 @@ function server_remove() {
 function boot_get-config() {
 	NAMES=`echo $* | tr ' ' ,`
 	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
-	ansible-playbook -i ~/ansible/inventory.all $LIMIT ~/ansible/get-setup.yml
+	ansible-playbook -i ansible/inventory/inventory.all $LIMIT ansible/get-config.yml
 }
 
 function boot_edit-config() {
@@ -328,7 +328,7 @@ function boot_reboot() {
 	[ -z "$NAMES" ] && Error "Debe indicar los nombres a rearrancar"
 	[ -z "$NAMES" ] && help_show
 	LIMIT="--limit $NAMES"
-	ansible-playbook -i ~/ansible/inventory.all $LIMIT ~/ansible/reboot.yml
+	ansible-playbook -i ansible/inventory/inventory.all $LIMIT ansible/reboot.yml
 }
 
 function boot_destroy() {

@@ -1,0 +1,65 @@
+---
+- name: Definir variables
+  set_fact:
+    v_storage_file: "{{lookup('env', 'HOME')}}/provision/storage.yml"
+    v_default:
+      tipo: '[so|osd|journal]'
+      size: 'unknown'
+      model: 'unknown'
+
+- name: Crear fichero storage si no existe
+  delegate_to: localhost
+  run_once: true
+  copy:
+    content: ""
+    dest: "{{v_storage_file}}"
+    force: no
+
+- name: Cargar fichero storage
+  delegate_to: localhost
+  run_once: true
+  include_vars:
+    file: "{{v_storage_file}}"
+    name: v_storage
+
+- name: Cargar variable v_storage_node
+  set_fact:
+    v_storage_node: "{{ v_storage[ansible_hostname]|default({}) }}"
+
+- name: Rellenar variables por defecto
+  set_fact:
+    v_storage_node: "{{ v_storage_node | combine( {item.key: dict(v_default)},recursive=true ) }}"
+  with_dict:
+    - "{{ansible_facts.devices}}"
+  when:
+    - item.value.vendor is not none
+    - v_storage_node[item.key] is undefined
+
+- name: Cargar tamaños discos
+  set_fact:
+    v_storage_node: "{{ v_storage_node | combine( { item.key: {
+			  'tipo': v_storage_node[item.key].tipo|default(v_default.tipo)
+                        , 'size': item.value.size|default(v_default.size)
+			, 'model': item.value.model|default(v_default.model)
+                        } },recursive=true ) }}"
+  with_dict:
+    - "{{ansible_facts.devices}}"
+  when:
+    - item.value.vendor is not none
+
+- name: Combinar las variables de los nodos en localhost
+  delegate_to: localhost
+  run_once: true
+  set_fact:
+    v_storage: "{{ v_storage | combine( { item: dict(hostvars[item].v_storage_node) },recursive=true ) }}"
+  with_items: "{{play_hosts}}"
+
+- name: Escribir el fichero storage
+  delegate_to: localhost
+  run_once: true
+  copy:
+    content: "{{v_storage|to_nice_yaml}}"
+    dest: "{{v_storage_file}}"
+
+
+

@@ -1,0 +1,10 @@
+---
+  - name: Reboot nodo
+    hosts: all
+    gather_facts: false
+    tasks:
+      - name: Reboot servers
+        reboot:
+          reboot_timeout: 600
+
+
