@@ -37,58 +37,19 @@
       dest: "{{ v_root.dir }}/html/centos7/LiveOS/squashfs.img"
     tags: pkg
 
-  - name: Get packages downloaded
-    shell: "ls -1 {{ v_root.dir }}/html/centos7/Packages"
-    register: down_pkgs
-    changed_when: false
+  - name: Update system packages to repo
+    shell: "repoquery -g --grouppkgs=all -l core | xargs repotrack --download_path={{v_root.dir}}/html/centos7/Packages"
+
+  - name: Download repo_packages to repo
+    command: "repotrack --download_path={{v_root.dir}}/html/centos7/Packages {{item}}"
+    with_items: "{{v_centos7.repo_packages}}"
+    when: not item.startswith('-')
     tags: pkg
 
-  - name: Copy custom repos to local repo
-    template:
-      src: "{{ item }}.j2"
-      dest: "{{ v_bootstrap.dir }}/etc/yum.repos.d/{{ item }}"
-    with_items:
-      - docker-ce.repo
-      - kubernetes.repo
-
-  - name: Download custom packages to local repo
-    command: "repotrack --download_path={{ v_root.dir }}/html/centos7/Packages {{ item }}"
-    with_items:
-      - kernel-devel
-      - grub2
-      - authconfig
-      - bc
-      - bridge-utils
-      - chrony
-      - deltarpm
-      - epel-release
-      - xfsprogs
-      - e2fsprogs
-      - gcc
-      - git
-      - htop
-      - iftop
-      - jq
-      - mlocate
-      - net-tools
-      - ntp
-      - python-devel
-      - python2-pip
-      - python2-simplejson
-      - sg3_utils
-      - sudo
-      - tcpdump
-      - vim-enhanced
-      - yum-utils
-      - device-mapper-persistent-data
-      - lvm2
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
-      - kubelet
-      - kubeadm
-      - kubectl
-    when: item+'.rpm' not in down_pkgs.stdout_lines
+  - name: Download custom packages to repo
+    command: "repotrack --download_path={{v_root.dir}}/html/centos7/Packages {{item}}"
+    with_items: "{{v_centos7.packages}}"
+    when: not item.startswith('-')
     tags: pkg
 
   - name: Generate file comps.xml
