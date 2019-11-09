@@ -2,5 +2,6 @@
   - include: config.yml
   - include: dnsmasq.yml
   - include: bootstrap.yml
+  - include: nginx.yml
   - include: centos.yml
 ...

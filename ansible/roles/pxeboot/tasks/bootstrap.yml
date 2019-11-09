@@ -40,22 +40,9 @@
     args:
       warn: False
 
-  - name: Copy custom repos to bootstrap repo
-    template:
-      src: "{{ item }}.j2"
-      dest: "{{ v_bootstrap.dir }}/etc/yum.repos.d/{{ item }}"
-    with_items:
-      - docker-ce.repo
-      - kubernetes.repo
-
   - name: Install custom packages
     yum:
       name:
-        - docker-ce-cli
-        - containerd.io
-        - kubelet
-        - kubeadm
-        - kubectl
         - lvm2
         - yum-utils
         - device-mapper-persistent-data

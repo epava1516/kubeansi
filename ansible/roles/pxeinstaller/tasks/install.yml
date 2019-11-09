@@ -1,0 +1,126 @@
+---
+- name: Cargar variables locales
+  set_fact:
+    l_disk_so: []
+    l_iface_name: []
+    v_id_rsa_pub: "{{ lookup('file', '{{v_root.dir}}/.ssh/id_rsa.pub') }}"
+    v_id_rsa: "{{ lookup('file', '{{v_root.dir}}/.ssh/id_rsa') }}"
+    v_boot_type: "{{ lookup('pipe', \"grep '^{{inventory_hostname}} ' /etc/nodes | cut -d' ' -f5\") }}"
+
+- name: Crear los ficheros que no existan
+  delegate_to: localhost
+  run_once: true
+  copy:
+    content: ""
+    dest: "{{item}}"
+    force: no
+  with_items:
+    - "{{v_root.dir}}/provision/storage.yml"
+    - "{{v_root.dir}}/provision/network.yml"
+
+- name: Cargar fichero storage desde provision
+  include_vars:
+    file: "{{v_root.dir}}/provision/storage.yml"
+    name: v_storage
+  delegate_to: localhost
+
+- name: Cargar fichero network desde provision
+  include_vars:
+    file: "{{v_root.dir}}/provision/network.yml"
+    name: v_network
+  delegate_to: localhost
+
+- name: Get OS disk
+  set_fact:
+    l_disk_so: "{{l_disk_so + [ item ] }}"
+    v_disk_so: "{{item}}"
+  with_items: "{{v_storage[inventory_hostname]}}"
+  when: v_storage[inventory_hostname][item]['tipo'] == 'so'
+  delegate_to: localhost
+
+- name: Verify only one os disk
+  fail: msg="Seleccione uno y solo un disco como 'so' ({{l_disk_so|join(',')}})"
+  when: l_disk_so|length!=1
+  delegate_to: localhost
+
+- name: Buscar los datos del interface PXE
+  set_fact:
+    v_mac: "{{v_network[inventory_hostname][item].macaddress}}"
+    v_iface_name: "{{item}}"
+    v_ip: "{{v_network[inventory_hostname][item]._ipv4}}"
+  with_items: "{{v_network[inventory_hostname]}}"
+  when: v_network[inventory_hostname][item]._use == 'pxe'
+  delegate_to: localhost
+
+- name: Generar fichero centos7 en pxelinux.cfg
+  template:
+    src: "pxelinux_cfg_centos7.j2"
+    dest: "{{v_tftpboot.dir}}/pxelinux.cfg/01-{{v_mac}}"
+  delegate_to: localhost
+
+- name: Generar fichero centos7 en grub.cfg
+  template:
+    src: "grub_cfg_centos7.j2"
+    dest: "{{v_tftpboot.dir}}/grub.cfg-01-{{v_mac}}"
+  delegate_to: localhost
+
+- name: Sacar el tipo de arranque BIOS/UEFI
+  shell: "grep '^{{inventory_hostname}} ' /etc/nodes | cut -d' ' -f5"
+  delegate_to: localhost
+  register: r_boot_type
+
+- name: Set boot_type
+  set_fact:
+    boot_type: "{{r_boot_type.stdout}}"
+
+- name: Generar fichero kickstart (.ks)
+  template:
+    src: "centos7.ks.j2"
+    dest: "{{v_root.dir}}/html/{{inventory_hostname}}.ks"
+  delegate_to: localhost
+
+- name: Crear el fichero /etc/dnsmasq.kubeansi/(MAC) con IP y nombre
+  copy:
+    dest: /etc/dnsmasq.kubeansi/{{v_mac}}
+    content: "{{v_mac|replace('-',':')}},{{v_ip}},{{inventory_hostname}}\n"
+  delegate_to: localhost
+
+- name: Reboot servers timeout 20 min
+  reboot:
+    reboot_timeout: 1200
+
+- name: Cargar la variable ansible_local
+  setup:
+    filter: "ansible_local"
+
+- name: Verificar que el nodo esta en installed
+  fail: msg="NO esta en modo 'installed' ({{ansible_local.kubeansi.status|default(null)}})"
+  when: ansible_local.kubeansi is undefined or ansible_local.kubeansi.status is undefined or ansible_local.kubeansi.status != 'installed'
+
+- name: Configurar las interfaces de red
+  include_tasks: tasks/config-network.yml
+
+- name: Configurar los discos de Ceph
+  include_tasks: tasks/config-storage.yml
+
+- name: Crear el fichero /etc/dnsmasq.kubeansi/(MAC) con ignore
+  copy:
+    dest: /etc/dnsmasq.kubeansi/{{v_mac}}
+    content: "{{v_mac|replace('-',':')}},ignore\n"
+  delegate_to: localhost
+
+- name: Set v_date_time variable
+  set_fact:
+    v_date_time: "{{lookup('pipe','date +\"%Y-%m-%d %H:%M:%S\"')}}"
+
+- name: Marcar los nodos con installed en /etc/nodes
+  lineinfile:
+    path: /etc/nodes
+    regexp: "^{{item}} (.+) (.+) (.+) (.+) (.+) (.+)$"
+    backrefs: yes
+    line: '{{item}} \1 \2 installed \4 {{v_date_time}}'
+  with_items: "{{play_hosts}}"
+  run_once: true
+  delegate_to: localhost
+
+

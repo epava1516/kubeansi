@@ -1,0 +1,13 @@
+---
+  - name: Provisionar nodo
+    hosts: nodos
+    gather_facts: true
+    tasks:
+      - name: Verificar que el nodo esta en bootstrap
+        fail: msg="NO esta en modo 'bootstrap' ({{ansible_local.kubeansi.status|default(null)}})"
+        when: ansible_local.kubeansi is undefined or ansible_local.kubeansi.status is undefined or ansible_local.kubeansi.status != 'bootstrap'
+
+      - name: config
+        include_role:
+         name: pxeinstaller
+...

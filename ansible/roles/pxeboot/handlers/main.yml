@@ -13,4 +13,9 @@
     with_items:
       - nfs-server
       - rpcbind
+
+  - name: nginx restart
+    service:
+      name: nginx
+      state: restarted
 ...

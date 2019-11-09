@@ -54,6 +54,31 @@
   - name: Download custom packages to local repo
     command: "repotrack --download_path={{ v_root.dir }}/html/centos7/Packages {{ item }}"
     with_items:
+      - kernel-devel
+      - grub2
+      - authconfig
+      - bc
+      - bridge-utils
+      - chrony
+      - deltarpm
+      - epel-release
+      - xfsprogs
+      - e2fsprogs
+      - gcc
+      - git
+      - htop
+      - iftop
+      - jq
+      - mlocate
+      - net-tools
+      - ntp
+      - python-devel
+      - python2-pip
+      - python2-simplejson
+      - sg3_utils
+      - sudo
+      - tcpdump
+      - vim-enhanced
       - yum-utils
       - device-mapper-persistent-data
       - lvm2

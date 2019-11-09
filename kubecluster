@@ -291,7 +291,7 @@ function boot_install() {
 	NAMES=`echo $* | tr ' ' ,`
 	[ -z "$NAMES" ] && Error "Debe indicar los nodos a instalar"
 	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
-	ansible-playbook -i ~/ansible/inventory.discover $LIMIT ~/ansible/provision-install.yml || Error "ERROR al ejecutar provision-install.yml"
+	ansible-playbook -i ansible/inventory/inventory.discover $LIMIT ansible/boot_install.yml || Error "ERROR al ejecutar provision-install.yml"
 }
 
 function boot_reinstall() {

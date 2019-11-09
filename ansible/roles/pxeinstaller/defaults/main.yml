@@ -23,6 +23,8 @@
       - epel-release
       - gcc
       - git
+      - xfsprogs
+      - e2fsprogs
       - htop
       - iftop
       - jq
