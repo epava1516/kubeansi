@@ -18,6 +18,15 @@
       - 8.8.4.4
       - 8.8.8.8
 
+  lans:
+      control:
+        lan: 192.168.0.0
+        prefix: 24
+      # external:
+      #   lan: 192.168.1.0
+      #   prefix: 24
+      #   gateway: 192.168.1.1
+
 ###################### DEFAULT VARIABLES ######################
   v_root:
     dir: /root

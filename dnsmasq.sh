@@ -77,7 +77,7 @@ case "$COMANDO" in
 		fi
 		if [[ "$FILE" =~ "centos7/init" ]] ; then
 			replace_line $NODES_FILE $MAC2 "$NAME $MAC2 $IP installing $TYPE $FH"
-			echo "${MAC},ignore" > /etc/dnsmasq.deployer/${MAC2}
+			echo "${MAC},ignore" > /etc/dnsmasq.kubeansi/${MAC2}
 			cp ${TFTP_DIR}/installed ${TFTP_DIR}/01-${MAC2}	
 			log status installing $MAC2 $IP $NAME $TYPE
 		fi
