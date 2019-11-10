@@ -1,5 +1,4 @@
 #!/bin/bash
 
-mkdir -p ~/bin
-cp kubecluster ~/bin
-cp dnsmasq.sh ~/bin
+mkdir -p /root/bin
+cp -R /root/kubeansi/* /root/bin
