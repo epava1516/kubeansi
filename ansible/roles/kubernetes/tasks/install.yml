@@ -1,6 +1,22 @@
 ---
+  - name: Cargar fichero network
+    include_vars:
+      file: "{{v_root.dir}}/provision/network.yml"
+      name: v_network
+    delegate_to: localhost
+
+  - name: Asignar IP a interfaces con _use y sin address
+    set_fact:
+      v_network_node: "{{ v_network_node | combine( { item: {'_ipv4': kubeansi.lans[v_network_node[item]._use].lan|ipmath(ansible_host.split('.')[3]|int) } },recursive=true ) }}"
+    with_items: "{{v_network_node}}"
+    when:
+      - v_network_node[item]._use in kubeansi.lans
+      - v_network_node[item]._ipv4 is none
+      - kubeansi.lans[v_network_node[item]._use].lan
+
   - name: Initialize the Kubernetes cluster using kubeadm
-    command: kubeadm init --apiserver-advertise-address="{{ ansible_facts['default_ipv4']['address'] }}" --apiserver-cert-extra-sans="{{ ansible_facts['default_ipv4']['address'] }}"  --node-name k8s-master --pod-network-cidr=192.168.0.0/16
+    command: kubeadm init --apiserver-advertise-address="{{v_network_node[item]._ipv4}}" --apiserver-cert-extra-sans="{{v_network_node[item]._ipv4}}"  --node-name k8s-master --pod-network-cidr=192.168.0.0/16
+    with_items: "{{v_network_node}}"
 
   #- name: Install calico pod network
   #  become: false

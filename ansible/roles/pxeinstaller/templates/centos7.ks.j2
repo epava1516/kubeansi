@@ -95,6 +95,13 @@ echo "bastion        ALL=(ALL)       NOPASSWD: ALL" >> /etc/sudoers.d/bastion
 # Limpiar las caches de yum
 yum clean all
 
+# Activar repos
+gpg --quiet --with-fingerprint /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+# Enable docker 
+systemctl enable docker
+
 # Marcar el nodo como instalado
 mkdir -p /etc/ansible/facts.d
 echo -e '{ "status": "installed" }' >/etc/ansible/facts.d/kubeansi.fact

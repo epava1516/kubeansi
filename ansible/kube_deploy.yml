@@ -1,0 +1,9 @@
+---
+  - name: Kubedeploy
+    hosts: nodos
+    gather_facts: true
+    tasks:
+      - name: config
+        include_role:
+          name: kubernetes
+...
