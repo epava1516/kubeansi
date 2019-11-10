@@ -6,5 +6,5 @@
     tasks:
       - name: config
         include_role:
-         name: pxeboot
+          name: pxeboot
 ...

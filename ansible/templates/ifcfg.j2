@@ -1,0 +1,38 @@
+# device:{{item}}    use:{{v_network_node[item]._use}}    mac: {{v_network_node[item].macaddress|default(none,true)}}
+DEVICE={{item}}
+NAME={{item}}
+{% if item.startswith('bond') %}
+TYPE=Bond
+BONDING_MASTER=yes
+{% if v_network_node[item]._options is defined and v_network_node[item]._options is not none and v_network_node[item]._options %}
+BONDING_OPTS="{{v_network_node[item]._options}}"
+{% else %}
+BONDING_OPTS="mode=4"
+{% endif %}
+{% else %}
+TYPE=Ethernet
+{% endif %}
+{% if v_network_node[item]._use.startswith('bond') %}
+BOOTPROTO=none
+MASTER={{v_network_node[item]._use}}
+SLAVE=yes
+{% else %}
+{% if v_network_node[item]._ipv4 is defined and v_network_node[item]._ipv4 is not none and v_network_node[item]._ipv4 %}
+BOOTPROTO=none
+IPADDR={{v_network_node[item]._ipv4}}
+PREFIX={{kubeansi.lans[v_network_node[item]._use].prefix}}
+{% if kubeansi.lans[v_network_node[item]._use].gateway is defined and kubeansi.lans[v_network_node[item]._use].gateway is not none%}
+GATEWAY={{kubeansi.lans[v_network_node[item]._use].gateway}}
+DEFROUTE=yes
+{% else %}
+DEFROUTE=no
+{% endif %}
+{% endif %}
+{% endif %}
+ONBOOT=yes
+IPV6INIT=no
+IPV6_AUTOCONF=no
+IPV6_DEFROUTE=no
+IPV6_PEERDNS=no
+IPV6_PEERROUTES=no
+IPV6_FAILURE_FATAL=no

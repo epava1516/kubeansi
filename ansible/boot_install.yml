@@ -9,5 +9,5 @@
 
       - name: config
         include_role:
-         name: pxeinstaller
+          name: pxeinstaller
 ...
