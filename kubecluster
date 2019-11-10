@@ -35,7 +35,8 @@ function help_show() {
 	echo -e "\t$PROG boot edit-config [--network][--storage] \t\t\t\t\t\t === Edit node config"
     echo -e "\t$PROG boot install [--reinstall] node1 [node...] \t\t\t\t\t\t === Install nodes and more actions"
 	echo -e "\t$PROG boot destroy [--yes-i-really-really-mean-it] node1 [node...] \t === Return nodes to bootstrap"
-	echo -e "\t$PROG boot reconfigure [--network][--storage] \t\t\t\t\t\t === Reconfigure network/disk node configuration"
+	echo -e "\t$PROG boot reconfigure-network node1 [node...] \t\t\t\t\t\t === Reconfigure network/disk node configuration"
+	echo -e "\t$PROG boot reconfigure-storage [--delete-ceph] node1 [node...] \t\t\t\t\t\t === Reconfigure network/disk node configuration"
     echo -e "\t$PROG boot reboot node1 [node...] \t\t\t\t\t\t\t\t\t === Reboot nodes"
 	echo -e ""
 	exit 1
@@ -65,7 +66,7 @@ function _complete() {
 				COMPREPLY=( $(compgen -W 'config setup init list ping set-hostname set-ip remove' ${cur_word}) )
 				;;
 			boot)
-				COMPREPLY=( $(compgen -W 'get-config edit-config install reinstall reconfigure reboot destroy' ${cur_word}) )
+				COMPREPLY=( $(compgen -W 'get-config edit-config install reconfigure-network reconfigure-storage reboot destroy' ${cur_word}) )
 				;;
                         *)
 				case "${prev2_word}_${prev_word}" in
@@ -78,7 +79,7 @@ function _complete() {
                                 boot_reconfigure-network|boot_reconfigure-storage)
                                         COMPREPLY=`_kubeansi_nodes_installed`
                                         ;;
-				boot_remove|boot_reinstall)
+				boot_destroy)
 					COMPREPLY=`_kubeansi_nodes_installed`
 					;;
                                 deploy_node-add|deploy_node-remove)
@@ -289,22 +290,17 @@ function boot_edit-config() {
 }
 
 function boot_install() {
-	NAMES=`echo $* | tr ' ' ,`
-	[ -z "$NAMES" ] && Error "Debe indicar los nodos a instalar"
+	NAMES=`echo $* | tr ' ' , | sed 's/\,\-\-reinstall//g' | sed 's/\-\-reinstall\,//g' | sed 's/\-\-reinstall//g'`
 	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
 	if [[ $* == *'--reinstall'* ]]; then
-		ansible-playbook -i $DIR/ansible/inventory/inventory.installed $LIMIT $DIR/ansible/boot_reinstall.yml || Error "ERROR al ejecutar provision-reinstall.yml"
+		[ -z "$NAMES" ] && Error "Debe indicar los nodos a reinstalar"
+		ansible-playbook -i $DIR/ansible/inventory/inventory.installed $LIMIT $DIR/ansible/boot_reinstall.yml || Error "ERROR al ejecutar boot-reinstall.yml"
 	else 
-		ansible-playbook -i $DIR/ansible/inventory/inventory.discover $LIMIT $DIR/ansible/boot_install.yml || Error "ERROR al ejecutar provision-install.yml"
+		[ -z "$NAMES" ] && Error "Debe indicar los nodos a instalar"
+		ansible-playbook -i $DIR/ansible/inventory/inventory.discover $LIMIT $DIR/ansible/boot_install.yml || Error "ERROR al ejecutar boot-install.yml"
 	fi
 }
 
-function boot_reinstall() {
-	NAMES=`echo $* | tr ' ' ,`
-	[ -z "$NAMES" ] && Error "Debe indicar los nodos a reinstalar"
-	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
-	ansible-playbook -i $DIR/ansible/inventory/inventory.installed $LIMIT $DIR/ansible/boot_reinstall.yml || Error "ERROR al ejecutar provision-reinstall.yml"
-}
 function boot_reconfigure-network() {
 	NAMES=`echo $* | tr ' ' ,`
 	[ -z "$NAMES" ] && Error "Debe indicar los nodos a reconfigurar"

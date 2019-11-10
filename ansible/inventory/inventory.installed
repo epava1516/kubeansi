@@ -8,7 +8,7 @@ parser.add_argument('-c', '--count', action='store_true', required=False, dest='
 parser.add_argument('--list', action='store_true', required=False, dest='list')
 args = parser.parse_args()
 
-bash_out = subprocess.Popen("egrep bootstrap /etc/nodes", shell=True, stdout=subprocess.PIPE).stdout.read()
+bash_out = subprocess.Popen("grep installed /etc/nodes", shell=True, stdout=subprocess.PIPE).stdout.read()
 
 servers = {
     'nodos': {
