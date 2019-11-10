@@ -3,6 +3,7 @@
     template:
       src: kubernetes.repo.j2
       dest: /etc/yum.repos.d/kubernetes.repo
+      force: yes
 
   - name: Install k8s
     yum:

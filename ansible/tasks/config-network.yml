@@ -23,6 +23,7 @@
     template:
       src: templates/ifcfg.j2
       dest: /etc/sysconfig/network-scripts/ifcfg-{{item}}
+      force: yes
     with_items: "{{v_network_node}}"
     when:
       - v_network_node[item]._use is defined

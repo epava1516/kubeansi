@@ -56,6 +56,7 @@
     template:
       src: comps.xml.j2
       dest: "{{ v_root.dir }}/html/centos7/Packages/comps.xml"
+      force: yes
     tags: pkg
 
   - name: Regenerate repo indexes

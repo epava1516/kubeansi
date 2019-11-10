@@ -27,11 +27,13 @@
     template:
       src: bootstrap_fstab.j2
       dest: "{{ v_bootstrap.dir }}/etc/fstab"
+      force: yes
 
   - name: Copy custom repos to local repo
     template:
       src: "{{ item }}.j2"
       dest: "/etc/yum.repos.d/{{ item }}"
+      force: yes
     with_items:
       - docker-ce.repo
       - kubernetes.repo

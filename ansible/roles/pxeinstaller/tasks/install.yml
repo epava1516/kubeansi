@@ -57,12 +57,14 @@
     template:
       src: "pxelinux_cfg_centos7.j2"
       dest: "{{v_tftpboot.dir}}/pxelinux.cfg/01-{{v_mac}}"
+      force: yes
     delegate_to: localhost
 
   - name: Generar fichero centos7 en grub.cfg
     template:
       src: "grub_cfg_centos7.j2"
       dest: "{{v_tftpboot.dir}}/grub.cfg-01-{{v_mac}}"
+      force: yes
     delegate_to: localhost
 
   - name: Sacar el tipo de arranque BIOS/UEFI
@@ -78,6 +80,7 @@
     template:
       src: "centos7.ks.j2"
       dest: "{{v_root.dir}}/html/{{inventory_hostname}}.ks"
+      force: yes
     delegate_to: localhost
 
   - name: Crear el fichero /etc/dnsmasq.kubeansi/(MAC) con IP y nombre

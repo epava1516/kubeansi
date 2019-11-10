@@ -23,6 +23,7 @@
       src: dnsmasq.conf.j2
       dest: /etc/dnsmasq.conf
       validate: 'dnsmasq --test --conf-file=%s'
+      force: yes
 
   - name: Modify /usr/lib/systemd/system/dnsmasq.service
     lineinfile:
@@ -40,20 +41,24 @@
     template:
       src: pxelinux_cfg_default.j2
       dest: "{{ v_tftpboot.dir }}/pxelinux.cfg/default"
+      force: yes
 
   - name: Generar fichero {{ v_tftpboot.dir }}/pxelinux.cfg/installed
     template:
       src: pxelinux_cfg_installed.j2
       dest: "{{ v_tftpboot.dir }}/pxelinux.cfg/installed"
+      force: yes
 
   - name: dnsmasq set file {{ v_tftpboot.dir }}/grub.cfg
     template:
       src: grub_cfg_default.j2
       dest: "{{ v_tftpboot.dir }}/grub.cfg"
+      force: yes
 
   - name: dnsmasq set file {{ v_tftpboot.dir }}/grub.cfg-installed
     template:
       src: grub_cfg_installed.j2
       dest: "{{ v_tftpboot.dir }}/grub.cfg-installed"
+      force: yes
     notify: restart_dnsmasq
 ...

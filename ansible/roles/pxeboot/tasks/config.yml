@@ -62,6 +62,7 @@
     template:
       src: ifcfg-kube-pxe.j2
       dest: /etc/sysconfig/network-scripts/ifcfg-{{ kubeansi.lan_pxe.interface }}
+      force: yes
     register: set_ip_pxe
 
   - name: Stop interface ({{ kubeansi.lan_pxe.interface }})
@@ -76,6 +77,7 @@
     template:
       src: ifcfg-kube-control.j2
       dest: /etc/sysconfig/network-scripts/ifcfg-{{ kubeansi.lan_control.interface }}
+      force: yes
     register: set_ip_control
 
   - name: Stop interface ({{ kubeansi.lan_control.interface }})
@@ -96,6 +98,7 @@
     template:
       src: resolv.conf.j2
       dest: /etc/resolv.conf
+      force: yes
 
   - name: Enable system services
     service:

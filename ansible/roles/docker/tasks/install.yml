@@ -34,6 +34,7 @@
     template:
       src: daemon.json.j2
       dest: /etc/docker/daemon.json
+      force: yes
     notify:
     - docker_status
 ...

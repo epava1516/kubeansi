@@ -1,0 +1,15 @@
+---
+  - name: Reconfigure network interfaces
+    hosts: nodos
+    gather_facts: true
+    tasks:
+
+      - name: Cargar la variable ansible_local
+        setup:
+          filter: "ansible_local"
+
+      - name: Verificar que el nodo esta en installed
+        fail: msg="NO esta en modo 'installed' ({{ansible_local.kubeansi.status|default(null)}})"
+        when: ansible_local.kubeansi is undefined or ansible_local.kubeansi.status is undefined or ansible_local.kubeansi.status != 'installed'
+
+      - include_tasks: tasks/config-network.yml
