@@ -1,7 +1,7 @@
 ---
   - name: Cargar fichero storage
     include_vars:
-      file: "{{v_root.dir}}/environment/storage.yml"
+      file: "{{v_root.dir}}/provision/storage.yml"
       name: v_storage
     delegate_to: localhost
 

@@ -139,9 +139,6 @@
 
   - name: Create directories
     file:
-      path: "{{ item }}"
+      path: "{{ v_root.dir }}/provision"
       state: directory
-    with_items:
-      - "{{ v_root.dir }}/environment"
-      - "{{ v_root.dir }}/provision"
 ...

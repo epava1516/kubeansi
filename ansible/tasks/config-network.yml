@@ -1,7 +1,7 @@
 ---
   - name: Cargar fichero network
     include_vars:
-      file: "{{v_root.dir}}/environment/network.yml"
+      file: "{{v_root.dir}}/provision/network.yml"
       name: v_network
     delegate_to: localhost
 
