@@ -1,9 +1,4 @@
 ---
-  - name: Load variables
-    include_vars: 
-      file: "vars/kubeansi.yml"
-    delegate_to: localhost
-
   - name: Cargar fichero network
     include_vars:
       file: "{{v_root.dir}}/environment/network.yml"
