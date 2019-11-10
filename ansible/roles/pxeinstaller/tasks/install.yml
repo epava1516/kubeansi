@@ -100,10 +100,10 @@
     when: ansible_local.kubeansi is undefined or ansible_local.kubeansi.status is undefined or ansible_local.kubeansi.status != 'installed'
 
   - name: Configurar las interfaces de red
-    include_tasks: tasks/config-network.yml
+    include_tasks: config-network.yml
 
   - name: Configurar los discos de Ceph
-    include_tasks: tasks/config-storage.yml
+    include_tasks: config-storage.yml
 
   - name: Crear el fichero /etc/dnsmasq.kubeansi/(MAC) con ignore
     copy:

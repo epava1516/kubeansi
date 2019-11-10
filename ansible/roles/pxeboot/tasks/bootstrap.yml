@@ -41,15 +41,6 @@
     args:
       warn: False
 
-  - name: Install custom packages
-    yum:
-      name:
-        - lvm2
-        - yum-utils
-        - device-mapper-persistent-data
-      installroot: "{{v_bootstrap.dir}}"
-      releasever: "7"
-
   - name: Get vmlinuz_file
     shell: "(cd {{  v_bootstrap.dir }}/boot; find . -type f -name vmlinuz-*.x86_64) | cut -d'/' -f2"
     register: vmlinuz_file

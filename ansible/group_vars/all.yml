@@ -63,6 +63,15 @@
       - sudo
       - tcpdump
       - vim-enhanced
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - kubelet
+      - kubeadm
+      - kubectl
 #
       - -NetworkManager*
       - -cloud-init

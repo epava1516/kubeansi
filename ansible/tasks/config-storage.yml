@@ -1,0 +1,75 @@
+---
+  - name: Cargar fichero storage
+    include_vars:
+      file: "{{v_root.dir}}/environment/storage.yml"
+      name: v_storage
+    delegate_to: localhost
+
+  - name: Listar puntos de montaje
+    become: true
+    find:
+      path: /var/lib/ceph/osd
+      file_type: directory
+    register: mountpoints
+
+  - name: Desmontar (unmounted) particiones utilizadas por Ceph
+    become: true
+    mount:
+      path: "{{ item.path }}"
+      state: unmounted
+    with_items: "{{ mountpoints.files }}"
+
+  - name: Demontar (absent) particiones utilizadas por Ceph
+    become: true
+    mount:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ mountpoints.files }}"
+
+  - name: Eliminar directorios de puntos de montaje
+    become: true
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ mountpoints.files }}"
+
+  - name: Leer informacion discos
+    become: true
+    parted:
+      device: "/dev/{{ item.key }}"
+      unit: MiB
+    register: r_info
+    with_dict: "{{v_storage[ansible_hostname]}}"
+
+  - name: Eliminar particion
+    become: true
+    parted:
+      device: "{{item.0.disk.dev}}"
+      number: "{{item.1.num}}"
+      state: absent
+    loop: "{{ r_info.results|subelements('partitions') }}"
+    when:
+      - "'KOLLA_CEPH' in item.1.name"
+
+  - name: Creamos label para que kolla lo reconozca como un disco para CEPH
+    become: true
+    parted:
+      device: "/dev/{{ item.key }}"
+      label: gpt
+      number: 1
+      name: "KOLLA_CEPH_OSD_BOOTSTRAP"
+      state: present
+    with_dict: "{{v_storage[ansible_hostname]}}"
+    when:
+      - item.value.tipo == 'osd'
+
+  - name: Crear el directorio /etc/ansible/facts.d
+    file:
+      path: /etc/ansible/facts.d
+      state: directory
+
+  - name: Guardar los datos del storage en el nodo
+    copy:
+      dest: /etc/ansible/facts.d/storage.fact
+      content: "{{v_storage[ansible_hostname] | to_json}}"
+...

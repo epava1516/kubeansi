@@ -92,19 +92,8 @@ echo -e "\nMatch User bastion\n\tPasswordAuthentication yes\n" >> /etc/ssh/sshd_
 
 echo "bastion        ALL=(ALL)       NOPASSWD: ALL" >> /etc/sudoers.d/bastion
 
-# Mover los repositorios de Centos a otra carpeta y crear el repositorio de kubeansi
-mkdir /etc/yum.repos.d/centos
-mv /etc/yum.repos.d/CentOS-* /etc/yum.repos.d/centos
-# Mover los repositorios de epel a otra carpeta
-mkdir /etc/yum.repos.d/epel
-mv /etc/yum.repos.d/epel*.repo /etc/yum.repos.d/epel
-# Crear el repositorio de kubeansi
-echo -e "[kubeansi]\nname=kubeansi\nenabled=1\nbaseurl=http://{{kubeansi.lan_pxe.ip}}/centos7/\ngpgcheck=0\n" >/etc/yum.repos.d/kubeansi.repo
 # Limpiar las caches de yum
 yum clean all
-
-# Generar el fichero pip.conf
-echo -e "[global]\ntrusted-host = {{kubeansi.lan_pxe.ip}}\nindex-url = http://{{kubeansi.lan_pxe.ip}}/pip/simple/\nindex = http://{{kubeansi.lan_pxe.ip}}/pip/simple/\nno-cache-dir = false\ndisable-pip-version-check = True" >/etc/pip.conf
 
 # Marcar el nodo como instalado
 mkdir -p /etc/ansible/facts.d

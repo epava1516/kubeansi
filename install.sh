@@ -1,4 +1,4 @@
 #!/bin/bash
 
 mkdir -p /root/bin
-cp -R /root/kubeansi/* /root/bin
+cp -Rf /root/kubeansi/* /root/bin
