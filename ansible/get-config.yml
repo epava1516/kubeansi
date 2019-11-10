@@ -3,6 +3,6 @@
     hosts: nodos
     gather_facts: true
     tasks:
-      - include_tasks: tasks/get-storage.yml
-      - include_tasks: tasks/get-network.yml
+      - include_tasks: get-storage.yml
+      - include_tasks: get-network.yml
 ...

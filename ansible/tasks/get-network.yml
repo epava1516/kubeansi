@@ -2,7 +2,7 @@
   - name: Definir variables
     set_fact:
       v_network_file: "{{lookup('env', 'HOME')}}/provision/network.yml"
-      v_default_use: "[pxe|internal|external|neutron|storage|null]"
+      v_default_use: "[pxe|control|external|null]"
       v_default_ipv4: null
 
   - name: Crear fichero network si no existe
