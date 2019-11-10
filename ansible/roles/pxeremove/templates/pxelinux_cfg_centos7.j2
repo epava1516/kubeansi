@@ -1,0 +1,18 @@
+# boot Install Centos7
+default menu.c32
+prompt 0
+menu title Install CentOS 7 on {{inventory_hostname}}
+
+timeout 50   # 5 segundos
+ontimeout install
+
+label install
+        menu label Install CentOS 7 on {{inventory_hostname}}
+        kernel centos7/vmlinuz
+	append initrd=centos7/initrd.img ip={{ansible_host}}:::{{kubeansi.lan_pxe.netmask}}:{{inventory_hostname}}:{{v_iface_name}}:none ipv6.disable=1 inst.sshd inst.keymap=es selinux=0 inst.ks=http://{{kubeansi.lan_pxe.ip}}/{{inventory_hostname}}.ks inst.ks=http://{{kubeansi.lan_pxe.ip}}/{{inventory_hostname}}.ks inst.ks=http://{{kubeansi.lan_pxe.ip}}/{{inventory_hostname}}.ks
+
+label localboot
+	menu label Boot from local drive
+	#localboot 0
+	COM32 chain.c32
+	APPEND hd0

@@ -1,0 +1,104 @@
+#version=RHEL7
+# System authorization information
+auth --enableshadow --passalgo=sha512
+
+# Use network installation
+url --url="http://{{kubeansi.lan_pxe.ip}}/centos7"
+
+# Use graphical/text install
+text
+
+# Run the Setup Agent on first boot
+firstboot --disable
+eula --agreed
+
+# Keyboard layouts
+keyboard --vckeymap=es --xlayouts='es'
+
+# System language
+lang en_US.UTF-8
+
+# Network information
+# PXE
+network  --bootproto=static --device={{v_iface_name}} --ip={{ansible_host}} --netmask={{kubeansi.lan_pxe.netmask}} --nameserver={{v_centos7.nameservers|join(',')}} --noipv6 --activate --onboot=on
+network  --hostname={{inventory_hostname}}.{{kubeansi.domain}}
+
+# Repositorio kubeansi
+repo --name=kubeansi --baseurl=http://{{kubeansi.lan_pxe.ip}}/centos7/ --install
+
+# Root password
+rootpw {{v_centos7.root_password}}
+
+# System services
+services --enabled=network
+
+# System timezone
+timezone --utc Etc/UTC
+
+# Selinux
+selinux --disabled
+
+# System bootloader configuration
+bootloader --location=mbr --boot-drive={{v_disk_so}}
+
+# Partition clearing information
+#JIA#clearpart --none --initlabel
+# Inicializar el disco del sistema operativo
+clearpart --drives={{v_disk_so}} --all
+zerombr
+
+# Disk partitioning information
+ignoredisk --only-use={{v_disk_so}}
+part /boot --size=200 --asprimary --fstype=ext4 --ondisk={{v_disk_so}}
+{% if v_boot_type == 'UEFI' %}
+part /boot/efi --size=50 --asprimary --fstype=efi --ondisk={{v_disk_so}}
+{% endif %}
+part pv.1 --size=1 --grow --fstype=lvmpv --ondisk={{v_disk_so}}
+
+volgroup vg0 --pesize=4096 pv.1
+logvol swap --vgname=vg0 --fstype="swap" --name=swap --size=2048
+logvol / --vgname=vg0 --fstype="xfs" --name=root --size=1 --grow
+
+%packages
+@^minimal
+kernel-devel
+grub2
+{% for pkg in v_centos7.packages %}
+{{pkg}}
+{% endfor %}
+%end
+
+# Usuarios
+user --name=bastion --iscrypted --password=$6$fsVuexoAOXu30Kzw$evGtJHcybFEaJWzCoZqJrmG/oHsYjHe0ZXqghO3bGm.bOaSIAWaI1LNPcdN5mN3O/P9GSXDypfSMUkZVGu6FB1
+
+%addon com_redhat_kdump --disable --reserve-mb='auto'
+
+%end
+
+%post
+sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+echo -e "\n{{kubeansi.lan_pxe.ip}} {{kubeansi.name}} {{kubeansi.name}}.{{kubeansi.domain}}\n" >> /etc/hosts
+
+mkdir -p -m 0700 /root/.ssh
+echo -e "{{v_id_rsa_pub}}" >> /root/.ssh/authorized_keys
+echo -e "{{v_id_rsa}}" > /root/.ssh/id_rsa
+echo -e "Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile=/dev/null" > /root/.ssh/config
+chmod 0600 /root/.ssh/authorized_keys /root/.ssh/id_rsa /root/.ssh/config
+
+sed -i 's/^[[:space:]]*#*UseDNS[[:space:]]\+yes/UseDNS no/' /etc/ssh/sshd_config
+sed -i 's/^PasswordAuthentication[[:space:]]\+yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+sed -i 's/^ChallengeResponseAuthentication[[:space:]]\+yes/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
+echo -e "\nMatch User bastion\n\tPasswordAuthentication yes\n" >> /etc/ssh/sshd_config
+
+echo "bastion        ALL=(ALL)       NOPASSWD: ALL" >> /etc/sudoers.d/bastion
+
+# Limpiar las caches de yum
+yum clean all
+
+# Marcar el nodo como instalado
+mkdir -p /etc/ansible/facts.d
+echo -e '{ "status": "installed" }' >/etc/ansible/facts.d/kubeansi.fact
+
+%end
+
+reboot

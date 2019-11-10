@@ -54,9 +54,9 @@ function _complete() {
 	}
 	_deployer_complete() {
 		COMPREPLY=()
-		        cur_word="${COMP_WORDS[COMP_CWORD]}"
-		        prev_word="${COMP_WORDS[COMP_CWORD-1]}"
-		        prev2_word="${COMP_WORDS[COMP_CWORD-2]}"
+				cur_word="${COMP_WORDS[COMP_CWORD]}"
+				prev_word="${COMP_WORDS[COMP_CWORD-1]}"
+				prev2_word="${COMP_WORDS[COMP_CWORD-2]}"
 			case "${prev_word}" in
 			${PROG})
 				COMPREPLY=( $(compgen -W 'server boot -h -v' ${cur_word}) )
@@ -292,14 +292,18 @@ function boot_install() {
 	NAMES=`echo $* | tr ' ' ,`
 	[ -z "$NAMES" ] && Error "Debe indicar los nodos a instalar"
 	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
-	ansible-playbook -i $DIR/ansible/inventory/inventory.discover $LIMIT $DIR/ansible/boot_install.yml || Error "ERROR al ejecutar provision-install.yml"
+	if [[ $NAME == '*--reinstall*' ]]; then
+		ansible-playbook -i $DIR/ansible/inventory/inventory.installed $LIMIT $DIR/ansible/boot-reinstall.yml || Error "ERROR al ejecutar provision-reinstall.yml"
+	else 
+		ansible-playbook -i $DIR/ansible/inventory/inventory.discover $LIMIT $DIR/ansible/boot_install.yml || Error "ERROR al ejecutar provision-install.yml"
+	fi
 }
 
 function boot_reinstall() {
 	NAMES=`echo $* | tr ' ' ,`
 	[ -z "$NAMES" ] && Error "Debe indicar los nodos a reinstalar"
 	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
-	ansible-playbook -i $DIR/ansible/inventory/inventory.installed $LIMIT $DIR/ansible/provision-reinstall.yml || Error "ERROR al ejecutar provision-reinstall.yml"
+	ansible-playbook -i $DIR/ansible/inventory/inventory.installed $LIMIT $DIR/ansible/boot-reinstall.yml || Error "ERROR al ejecutar provision-reinstall.yml"
 }
 function boot_reconfigure-network() {
 	NAMES=`echo $* | tr ' ' ,`
@@ -399,7 +403,7 @@ function deploy_install() {
         DEPLOY_PULL=false
         DEPLOY_DEPLOY=false
         while [[ $# -gt 0 ]]; do
-           	option="$1"
+            option="$1"
 		case $option in
 			--bootstrap-servers) DEPLOY_BOOTSTRAP_SERVERS=true; shift;;
 			--prechecks) DEPLOY_PRECHECKS=true; shift;;
@@ -502,7 +506,7 @@ function deploy_destroy() {
         DESTROY_OPTIONS=""
         REBOOT=false
         while [[ $# -gt 0 ]]; do
-           	option="$1"
+            option="$1"
 		case $option in
 			--yes-i-really-really-mean-it) CONFIRM=true; shift;;
 			--include-images) DESTROY_OPTIONS="$DESTROY_OPTIONS --include-images"; shift;;

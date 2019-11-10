@@ -1,0 +1,21 @@
+---
+  - name: Reinstalar nodo
+    hosts: nodos
+    gather_facts: true
+    vars:
+      v_reinstall: true
+    tasks:
+
+      - name: Verificar que el nodo esta en installed
+        fail: msg="NO esta en modo 'installed' ({{ansible_local.deployer.status|default(null)}})"
+        when: ansible_local.deployer is undefined or ansible_local.deployer.status is undefined or ansible_local.deployer.status != 'installed'
+
+      - name: config
+        include_role:
+          name: {{ roles }}
+        with_items:
+          - pxeremove
+          - pxeinstaller
+        loop_control:
+          loop_var: roles
+...

@@ -1,0 +1,120 @@
+---
+- name: Inicializar variables locales
+  set_fact:
+    l_disk_so: []
+    l_iface_name: []
+
+- name: Cargar fichero storage
+  include_vars:
+    file: "{{v_root.dir}}/provision/storage.yml"
+    name: v_storage
+  delegate_to: localhost
+
+- name: Cargar fichero network
+  include_vars:
+    file: "{{v_root.dir}}/provision/network.yml"
+    name: v_network
+  delegate_to: localhost
+
+- name: Get OS disk
+  set_fact:
+    l_disk_so: "{{l_disk_so + [ item ] }}"
+    v_disk_so: "{{item}}"
+  with_items: "{{v_storage[inventory_hostname]}}"
+  when: v_storage[inventory_hostname][item]['tipo'] == 'so'
+  delegate_to: localhost
+
+- name: Verify only one os disk
+  fail: 
+    msg: "Seleccione uno y solo un disco como 'so' ({{l_disk_so|join(',')}})"
+  when: l_disk_so|length!=1
+  delegate_to: localhost
+
+- name: Buscar los datos del interface PXE
+  set_fact:
+    v_mac: "{{v_network[inventory_hostname][item].macaddress}}"
+    v_iface_name: "{{item}}"
+    v_ip: "{{v_network[inventory_hostname][item]._ipv4}}"
+  with_items: "{{v_network[inventory_hostname]}}"
+  when: v_network[inventory_hostname][item]._use == 'pxe'
+  delegate_to: localhost
+
+- name: Borrar fichero centos7 en pxelinux.cfg
+  file:
+    path: "{{v_tftpboot.dir}}/pxelinux.cfg/01-{{v_mac}}"
+    state: absent
+  delegate_to: localhost
+
+- name: Borrar fichero centos7 en grub.cfg
+  file:
+    path: "{{v_tftpboot.dir}}/grub.cfg-01-{{v_mac}}"
+    state: absent
+  delegate_to: localhost
+
+- name: Borrar fichero .ks
+  file:
+    path: "{{v_root.dir}}/html/{{inventory_hostname}}.ks"
+    state: absent
+  delegate_to: localhost
+
+- name: Crear el fichero /etc/dnsmasq.deployer/(MAC) con IP y nombre
+  copy:
+    dest: /etc/dnsmasq.deployer/{{v_mac}}
+    content: "{{v_mac|replace('-',':')}},{{v_ip}},{{inventory_hostname}}\n"
+  delegate_to: localhost
+
+- name: Restart dnsmasq 
+  service:
+    name: dnsmasq
+    state: restarted
+  delegate_to: localhost
+  run_once: true
+
+- name: Verify exists multinode file
+  stat:
+    path: "{{v_root.dir}}/environment/multinode.yml"
+  register: stat_multinode
+
+- name: Borrar la linea del fichero multinode
+  lineinfile:
+    path: "{{v_root.dir}}/environment/multinode.yml"
+    regexp: "^{{item}} .* tps_role"
+    state: absent
+  with_items: "{{play_hosts}}"
+  when: stat_multinode.stat.exists|bool == true
+  delegate_to: localhost
+  run_once: true
+
+- name: Verify exists role file
+  stat:
+    path: "{{v_root.dir}}/environment/roles.yml"
+  register: stat_roles
+
+- name: Remove line from roles file
+  lineinfile:
+    path: "{{v_root.dir}}/environment/roles.yml"
+    regexp: "^{{item}}: "
+    state: absent
+  with_items: "{{play_hosts}}"
+  when: stat_roles.stat.exists|bool == true
+  delegate_to: localhost
+  run_once: true
+
+- name: Remove all partitions from disk {{v_disk_so}}
+  shell: "wipefs -af /dev/{{v_disk_so}}"
+
+- name: Reboot servers timeout 10 min
+  reboot:
+    reboot_timeout: 600
+  when: v_reinstall == false
+
+- name: Cargar la variable ansible_local
+  setup:
+    filter: "ansible_local"
+  when: v_reinstall == false
+
+- name: Verificar que el nodo esta en bootstrap
+  fail: msg="NO esta en modo 'bootstrap' ({{ansible_local.deployer.status|default(null)}})"
+  when: 
+    - v_reinstall == false
+    - ansible_local.deployer is undefined or ansible_local.deployer.status is undefined or ansible_local.deployer.status != 'bootstrap'
