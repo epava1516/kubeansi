@@ -34,6 +34,13 @@
       - 8.8.4.4
       - 8.8.8.8
     root_password: "aQZP5m7xBRBt8rtk"
+    repo_packages:
+      - kernel
+      - kernel-devel
+      - grub2
+      - grub2-efi-x64
+      - shim-x64
+      - efibootmgr
     packages:
       - authconfig
       - bc

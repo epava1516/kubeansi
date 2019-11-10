@@ -40,5 +40,3 @@ if args.list:
     print(servers)
 else:
     print(len(servers['nodos']['hosts']))
-
-
