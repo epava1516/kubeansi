@@ -57,9 +57,9 @@
     state: absent
   delegate_to: localhost
 
-- name: Crear el fichero /etc/dnsmasq.deployer/(MAC) con IP y nombre
+- name: Crear el fichero /etc/dnsmasq.kubeansi/(MAC) con IP y nombre
   copy:
-    dest: /etc/dnsmasq.deployer/{{v_mac}}
+    dest: /etc/dnsmasq.kubeansi/{{v_mac}}
     content: "{{v_mac|replace('-',':')}},{{v_ip}},{{inventory_hostname}}\n"
   delegate_to: localhost
 
@@ -114,7 +114,7 @@
   when: v_reinstall == false
 
 - name: Verificar que el nodo esta en bootstrap
-  fail: msg="NO esta en modo 'bootstrap' ({{ansible_local.deployer.status|default(null)}})"
+  fail: msg="NO esta en modo 'bootstrap' ({{ansible_local.kubeansi.status|default(null)}})"
   when: 
     - v_reinstall == false
-    - ansible_local.deployer is undefined or ansible_local.deployer.status is undefined or ansible_local.deployer.status != 'bootstrap'
+    - ansible_local.kubeansi is undefined or ansible_local.kubeansi.status is undefined or ansible_local.kubeansi.status != 'bootstrap'

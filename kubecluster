@@ -43,16 +43,16 @@ function help_show() {
 
 function _complete() {
 	cat << 'EOF'
-        _deployer_nodes_bootstrap_mac() {
+        _kubeansi_nodes_bootstrap_mac() {
 		echo $(grep bootstrap /etc/nodes | cut -d' ' -f2)
 	}
-        _deployer_nodes_bootstrap() {
+        _kubeansi_nodes_bootstrap() {
 		echo $(grep bootstrap /etc/nodes | cut -d' ' -f1)
 	}
-        _deployer_nodes_installed() {
+        _kubeansi_nodes_installed() {
 		echo $(grep installed /etc/nodes | cut -d' ' -f1)
 	}
-	_deployer_complete() {
+	_kubeansi_complete() {
 		COMPREPLY=()
 				cur_word="${COMP_WORDS[COMP_CWORD]}"
 				prev_word="${COMP_WORDS[COMP_CWORD-1]}"
@@ -70,19 +70,19 @@ function _complete() {
                         *)
 				case "${prev2_word}_${prev_word}" in
 				discover_set-ip|discover_set-hostnamediscover_remove)
-					COMPREPLY=`_deployer_nodes_bootstrap_mac`
+					COMPREPLY=`_kubeansi_nodes_bootstrap_mac`
 					;;
-				provision_install|discover_get-setup)
-					COMPREPLY=`_deployer_nodes_bootstrap`
+				boot_install|discover_get-setup)
+					COMPREPLY=`_kubeansi_nodes_bootstrap`
 					;;
-                                provision_reconfigure-network|provision_reconfigure-storage)
-                                        COMPREPLY=`_deployer_nodes_installed`
+                                boot_reconfigure-network|boot_reconfigure-storage)
+                                        COMPREPLY=`_kubeansi_nodes_installed`
                                         ;;
-				provision_remove|provision_reinstall)
-					COMPREPLY=`_deployer_nodes_installed`
+				boot_remove|boot_reinstall)
+					COMPREPLY=`_kubeansi_nodes_installed`
 					;;
                                 deploy_node-add|deploy_node-remove)
-                                        COMPREPLY=`_deployer_nodes_installed`
+                                        COMPREPLY=`_kubeansi_nodes_installed`
                                         ;;
 				deploy_install)
 					COMPREPLY=( $(compgen -W '--bootstrap-servers --prechecks --pull --deploy' ${cur_word}) )
@@ -94,7 +94,7 @@ function _complete() {
 			esac
 
 	}
-	complete -F _deployer_complete ${PROG}
+	complete -F _kubeansi_complete ${PROG}
 EOF
 }
 

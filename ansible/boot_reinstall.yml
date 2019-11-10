@@ -7,8 +7,8 @@
     tasks:
 
       - name: Verificar que el nodo esta en installed
-        fail: msg="NO esta en modo 'installed' ({{ansible_local.deployer.status|default(null)}})"
-        when: ansible_local.deployer is undefined or ansible_local.deployer.status is undefined or ansible_local.deployer.status != 'installed'
+        fail: msg="NO esta en modo 'installed' ({{ansible_local.kubeansi.status|default(null)}})"
+        when: ansible_local.kubeansi is undefined or ansible_local.kubeansi.status is undefined or ansible_local.kubeansi.status != 'installed'
 
       - name: config
         include_role:
