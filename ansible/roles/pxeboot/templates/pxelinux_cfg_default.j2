@@ -10,4 +10,3 @@ label bootstrap
         menu label bootstrap
         kernel bootstrap/vmlinuz
         append text root=nfs:{{ kubeansi.lan_pxe.ip }}:{{ v_bootstrap.dir }},nfsvers=3 initrd=bootstrap/initramfs.img rw selinux=0 ip=dhcp ipv6.disable=1
-

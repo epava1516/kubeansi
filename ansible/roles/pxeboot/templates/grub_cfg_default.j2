@@ -21,4 +21,3 @@ menuentry 'bootstrap' --class fedora --class gnu-linux --class gnu --class os {
         linuxefi bootstrap/vmlinuz root=nfs:{{ kubeansi.lan_pxe.ip }}:{{ v_bootstrap.dir }},nfsvers=3 rw selinux=0 ip=dhcp ipv6.disable=1
         initrdefi bootstrap/initramfs.img
 }
-

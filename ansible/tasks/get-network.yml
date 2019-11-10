@@ -1,118 +1,100 @@
 ---
-- name: Definir variables
-  set_fact:
-    v_network_file: "{{lookup('env', 'HOME')}}/provision/network.yml"
-    v_default_use: "[pxe|internal|external|neutron|storage|null]"
-    v_default_ipv4: null
+  - name: Definir variables
+    set_fact:
+      v_network_file: "{{lookup('env', 'HOME')}}/provision/network.yml"
+      v_default_use: "[pxe|internal|external|neutron|storage|null]"
+      v_default_ipv4: null
 
-#- name: Load variables
-#  include_vars:
-#    file: "vars/deployer.yml"
-#  delegate_to: localhost
+  - name: Crear fichero network si no existe
+    delegate_to: localhost
+    run_once: true
+    copy:
+      content: ""
+      dest: "{{v_network_file}}"
+      force: no
 
-- name: Crear fichero network si no existe
-  delegate_to: localhost
-  run_once: true
-  copy:
-    content: ""
-    dest: "{{v_network_file}}"
-    force: no
+  - name: Cargar fichero network
+    delegate_to: localhost
+    run_once: true
+    include_vars:
+      file: "{{v_network_file}}"
+      name: v_network
 
-- name: Cargar fichero network
-  delegate_to: localhost
-  run_once: true
-  include_vars:
-    file: "{{v_network_file}}"
-    name: v_network
+  - name: Cargar variable v_network_node
+    set_fact:
+      v_network_node: "{{ v_network[inventory_hostname]|default({}) }}"
 
-- name: Cargar variable v_network_node
-  set_fact:
-    v_network_node: "{{ v_network[inventory_hostname]|default({}) }}"
+  - name: Rellenar los interfaces _ipv4
+    set_fact:
+      v_network_node: "{{ v_network_node | combine( { item: { '_ipv4': v_default_ipv4 } },recursive=true) }}"
+    with_items:
+      - "{{ansible_facts.interfaces}}"
+    when: 
+      - ansible_facts[item] is defined
+      - ansible_facts[item].type == 'ether' or ansible_facts[item].type == 'bonding'
+      - ansible_facts[item].module is defined
+      - v_network_node[item] is undefined or v_network_node[item]._ipv4 is undefined
 
-- name: Rellenar los interfaces _ipv4
-  set_fact:
-    v_network_node: "{{ v_network_node | combine( { item: { '_ipv4': v_default_ipv4 } },recursive=true) }}"
-  with_items:
-    - "{{ansible_facts.interfaces}}"
-  when: 
-    - ansible_facts[item] is defined
-    - ansible_facts[item].type == 'ether' or ansible_facts[item].type == 'bonding'
-    - ansible_facts[item].module is defined
-    - v_network_node[item] is undefined or v_network_node[item]._ipv4 is undefined
+  - name: Rellenar los interfaces _use
+    set_fact:
+      v_network_node: "{{ v_network_node | combine( { item: { '_use': v_default_use } },recursive=true) }}"
+    with_items:
+      - "{{ansible_facts.interfaces}}"
+    when: 
+      - ansible_facts[item] is defined
+      - ansible_facts[item].type == 'ether' or ansible_facts[item].type == 'bonding'
+      - ansible_facts[item].module is defined
+      - v_network_node[item] is undefined or v_network_node[item]._use is undefined
 
-- name: Rellenar los interfaces _use
-  set_fact:
-    v_network_node: "{{ v_network_node | combine( { item: { '_use': v_default_use } },recursive=true) }}"
-  with_items:
-    - "{{ansible_facts.interfaces}}"
-  when: 
-    - ansible_facts[item] is defined
-    - ansible_facts[item].type == 'ether' or ansible_facts[item].type == 'bonding'
-    - ansible_facts[item].module is defined
-    - v_network_node[item] is undefined or v_network_node[item]._use is undefined
+  - name: Rellenar macaddress, module
+    set_fact:
+      v_network_node: "{{ v_network_node | combine( { item: 
+                  { 'macaddress': ansible_facts[item].macaddress|replace(':','-')
+                  , 'module': (ansible_facts[item].module)|default(null,true) 
+                  } 
+                  },recursive=true ) }}"
+    with_items:
+      - "{{ansible_facts.interfaces}}"
+    when: 
+      - ansible_facts[item] is defined
+      - ansible_facts[item].type == 'ether'
+      - ansible_facts[item].module is defined
 
-- name: Rellenar macaddress, module
-  set_fact:
-    v_network_node: "{{ v_network_node | combine( { item: 
-                { 'macaddress': ansible_facts[item].macaddress|replace(':','-')
-                , 'module': (ansible_facts[item].module)|default(null,true) 
-                } 
-                },recursive=true ) }}"
-  with_items:
-    - "{{ansible_facts.interfaces}}"
-  when: 
-    - ansible_facts[item] is defined
-    - ansible_facts[item].type == 'ether'
-    - ansible_facts[item].module is defined
+  - name: Rellenar speed
+    set_fact:
+      v_network_node: "{{ v_network_node | combine( { item: 
+                  { 'speed': (ansible_facts[item].speed)|default(null,true) } 
+                  },recursive=true ) }}"
+    with_items:
+      - "{{ansible_facts.interfaces}}"
+    when: 
+      - ansible_facts[item] is defined
+      - ansible_facts[item].type == 'ether'
+      - ansible_facts[item].speed is defined
+      - ansible_facts[item].module is defined
 
-- name: Rellenar speed
-  set_fact:
-    v_network_node: "{{ v_network_node | combine( { item: 
-                { 'speed': (ansible_facts[item].speed)|default(null,true) } 
-                },recursive=true ) }}"
-  with_items:
-    - "{{ansible_facts.interfaces}}"
-  when: 
-    - ansible_facts[item] is defined
-    - ansible_facts[item].type == 'ether'
-    - ansible_facts[item].speed is defined
-    - ansible_facts[item].module is defined
+  - name: Rellenar los interfaces de PXE
+    set_fact:
+      v_network_node: "{{ v_network_node | combine( { item: {'_use': 'pxe', '_ipv4': ansible_facts[item].ipv4.address } },recursive=true ) }}"
+    with_items:
+      - "{{ansible_facts.interfaces}}"
+    when: 
+      - ansible_facts[item] is defined
+      - ansible_facts[item].type == 'ether'
+      - ansible_facts[item].ipv4 is defined
+      - ansible_facts[item].ipv4.address == ansible_host
 
-- name: Rellenar los interfaces de PXE
-  set_fact:
-    v_network_node: "{{ v_network_node | combine( { item: {'_use': 'pxe', '_ipv4': ansible_facts[item].ipv4.address } },recursive=true ) }}"
-  with_items:
-    - "{{ansible_facts.interfaces}}"
-  when: 
-    - ansible_facts[item] is defined
-    - ansible_facts[item].type == 'ether'
-    - ansible_facts[item].ipv4 is defined
-    - ansible_facts[item].ipv4.address == ansible_host
+  - name: Combinar las variables de los nodos en localhost
+    delegate_to: localhost
+    run_once: true
+    set_fact:
+      v_network: "{{ v_network | combine( { item: dict(hostvars[item].v_network_node) },recursive=true ) }}"
+    with_items: "{{play_hosts}}"
 
-#- name: Asignar IP a interfaces con _use y sin address
-#  set_fact:
-#    v_network_node: "{{ v_network_node | combine( { item: {'_ipv4': deployer.lans[v_network_node[item]._use].lan|ipmath(ansible_host.split('.')[3]|int) } },recursive=true ) }}"
-#  with_items:
-#    - "{{ansible_facts.interfaces}}"
-#  when:
-#    - ansible_facts[item] is defined
-#    - ansible_facts[item].type == 'ether' or ansible_facts[item].type == 'bonding'
-#    - v_network_node[item]._use in deployer.lans
-#    - v_network_node[item]._ipv4 is none
-#    - deployer.lans[v_network_node[item]._use].lan
-
-- name: Combinar las variables de los nodos en localhost
-  delegate_to: localhost
-  run_once: true
-  set_fact:
-    v_network: "{{ v_network | combine( { item: dict(hostvars[item].v_network_node) },recursive=true ) }}"
-  with_items: "{{play_hosts}}"
-
-- name: Escribir el fichero network
-  delegate_to: localhost
-  run_once: true
-  copy:
-    content: "{{v_network|to_nice_yaml}}"
-    dest: "{{v_network_file}}"
-
-
+  - name: Escribir el fichero network
+    delegate_to: localhost
+    run_once: true
+    copy:
+      content: "{{v_network|to_nice_yaml}}"
+      dest: "{{v_network_file}}"
+...

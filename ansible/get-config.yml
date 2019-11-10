@@ -5,4 +5,4 @@
     tasks:
       - include_tasks: tasks/get-storage.yml
       - include_tasks: tasks/get-network.yml
-
+...
