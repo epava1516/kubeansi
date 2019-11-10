@@ -12,7 +12,7 @@
 
       - name: config
         include_role:
-          name: {{ roles }}
+          name: "{{ roles }}"
         with_items:
           - pxeremove
           - pxeinstaller

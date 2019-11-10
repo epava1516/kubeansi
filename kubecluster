@@ -65,7 +65,7 @@ function _complete() {
 				COMPREPLY=( $(compgen -W 'config setup init list ping set-hostname set-ip remove' ${cur_word}) )
 				;;
 			boot)
-				COMPREPLY=( $(compgen -W 'get-config edit-config install reconfigure reboot destroy' ${cur_word}) )
+				COMPREPLY=( $(compgen -W 'get-config edit-config install reinstall reconfigure reboot destroy' ${cur_word}) )
 				;;
                         *)
 				case "${prev2_word}_${prev_word}" in
@@ -292,8 +292,8 @@ function boot_install() {
 	NAMES=`echo $* | tr ' ' ,`
 	[ -z "$NAMES" ] && Error "Debe indicar los nodos a instalar"
 	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
-	if [[ $NAME == '*--reinstall*' ]]; then
-		ansible-playbook -i $DIR/ansible/inventory/inventory.installed $LIMIT $DIR/ansible/boot-reinstall.yml || Error "ERROR al ejecutar provision-reinstall.yml"
+	if [[ $* == *'--reinstall'* ]]; then
+		ansible-playbook -i $DIR/ansible/inventory/inventory.installed $LIMIT $DIR/ansible/boot_reinstall.yml || Error "ERROR al ejecutar provision-reinstall.yml"
 	else 
 		ansible-playbook -i $DIR/ansible/inventory/inventory.discover $LIMIT $DIR/ansible/boot_install.yml || Error "ERROR al ejecutar provision-install.yml"
 	fi
@@ -303,7 +303,7 @@ function boot_reinstall() {
 	NAMES=`echo $* | tr ' ' ,`
 	[ -z "$NAMES" ] && Error "Debe indicar los nodos a reinstalar"
 	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
-	ansible-playbook -i $DIR/ansible/inventory/inventory.installed $LIMIT $DIR/ansible/boot-reinstall.yml || Error "ERROR al ejecutar provision-reinstall.yml"
+	ansible-playbook -i $DIR/ansible/inventory/inventory.installed $LIMIT $DIR/ansible/boot_reinstall.yml || Error "ERROR al ejecutar provision-reinstall.yml"
 }
 function boot_reconfigure-network() {
 	NAMES=`echo $* | tr ' ' ,`
