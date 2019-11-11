@@ -5,5 +5,11 @@
     tasks:
       - name: config
         include_role:
-          name: kubernetes
+          name: "{{ roles }}"
+        with_items:
+          - config
+          - docker
+          - kubernetes
+        loop_control:
+          loop_var: roles
 ...
