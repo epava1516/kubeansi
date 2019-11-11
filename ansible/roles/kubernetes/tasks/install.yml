@@ -17,6 +17,8 @@
   - name: Initialize the Kubernetes cluster using kubeadm
     command: kubeadm init --apiserver-advertise-address="{{v_network_node[item]._ipv4}}" --apiserver-cert-extra-sans="{{v_network_node[item]._ipv4}}"  --node-name k8s-master --pod-network-cidr=192.168.0.0/16
     with_items: "{{v_network_node}}"
+    when:
+      - v_network_node[item]._use == 'control'
 
   #- name: Install calico pod network
   #  become: false

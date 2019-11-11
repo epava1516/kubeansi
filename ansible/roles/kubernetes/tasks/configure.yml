@@ -5,6 +5,10 @@
       name: v_network
     delegate_to: localhost
 
+  - name: Cargar variable v_network_node
+    set_fact:
+      v_network_node: "{{ v_network[inventory_hostname]|default({}) }}"
+
   - name: Asignar IP a interfaces con _use y sin address
     set_fact:
       v_network_node: "{{ v_network_node | combine( { item: {'_ipv4': kubeansi.lans[v_network_node[item]._use].lan|ipmath(ansible_host.split('.')[3]|int) } },recursive=true ) }}"
@@ -14,21 +18,14 @@
       - v_network_node[item]._ipv4 is none
       - kubeansi.lans[v_network_node[item]._use].lan
 
-  - name: debug
-    debug:
-      var: v_network_node[item]._ipv4
-
-  - name: Ensure kubelet file config exist
-    file:
-      path: /etc/default/kubelet
-      state: touch
-      mode: '0644'
-
-  - name: Configure node ip
-    lineinfile:
-      path: /etc/default/kubelet
-      line: KUBELET_EXTRA_ARGS=--node-ip={{v_network_node[item]._ipv4}}
+  - name: Configure /etc/default/kubelet
+    template:
+      src: kubelet.j2
+      dest: /etc/default/kubelet
+      force: yes
     with_items: "{{v_network_node}}"
+    when:
+      - v_network_node[item]._use == 'control'
 
   - name: Restart kubelet
     service:
