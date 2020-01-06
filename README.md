@@ -9,18 +9,19 @@ Este proyecto intenta automatizar el despliegue de clusters con kubernetes, y qu
 ## Instalación
 ### Instalacion base
 ```console
-$ yum install -y epel-release
-$ yum update -y
-$ yum install -y git unzip wget curl
-$ reboot
+[root@node ~]# yum install -y epel-release
+[root@node ~]# yum update -y
+[root@node ~]# yum install -y git unzip wget curl
+[root@node ~]# reboot
 ```
 
 ### Instalacion Ansible
 ```console
-$ sudo yum install -y ansible
+[root@node ~]# sudo yum install -y ansible
 ```
 #### Version utilizada durante estas pruebas
 ```
+[root@node ~]# ansible --version
 ansible 2.9.2
   config file = /etc/ansible/ansible.cfg
   configured module search path = [u'/root/.ansible/plugins/modules', u'/usr/share/ansible/plugins/modules']
@@ -31,16 +32,16 @@ ansible 2.9.2
 
 ### Instalacion kubeansi
 ```console
-$ git clone https://<usuario>:<password>@github.com/epava1516/kubeansi
+[root@node ~]# git clone https://<usuario>:<password>@github.com/epava1516/kubeansi
 or
-$ git clone https://github.com/epava1516/kubeansi
-$ cd kubeansi
-$ ./install.sh
+[root@node ~]# git clone https://github.com/epava1516/kubeansi
+[root@node ~]# cd kubeansi
+[root@node ~]# ./install.sh
 ```
 
 ### Actualizacion
 ```console
-$ project-update
+[root@node ~]# project-update
 ```
 
 
