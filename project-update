@@ -1,3 +1,4 @@
 #!/bin/bash
 cd /root/kubeansi
 git pull
+source install.sh
