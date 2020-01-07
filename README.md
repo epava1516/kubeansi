@@ -20,8 +20,10 @@ Este proyecto intenta automatizar el despliegue de clusters con kubernetes, y qu
 [root@node ~]# sudo yum install -y ansible
 ```
 #### Version utilizada durante estas pruebas
-```
+```console
 [root@node ~]# ansible --version
+```
+```
 ansible 2.9.2
   config file = /etc/ansible/ansible.cfg
   configured module search path = [u'/root/.ansible/plugins/modules', u'/usr/share/ansible/plugins/modules']
