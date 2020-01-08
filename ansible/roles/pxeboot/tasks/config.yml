@@ -40,7 +40,6 @@
         - mlocate
         - python2-pip
         - python-devel
-        - python-netaddr
         - gcc
         - bind-utils
         - bridge-utils
@@ -64,14 +63,11 @@
       dest: /etc/sysconfig/network-scripts/ifcfg-{{ kubeansi.lan_pxe.interface }}
       force: yes
     register: set_ip_pxe
-
-  - name: Stop interface ({{ kubeansi.lan_pxe.interface }})
-    command: bash -c "ifdown {{ kubeansi.lan_pxe.interface }}"
-    when: set_ip_pxe.changed
-
-  - name: Start interface ({{ kubeansi.lan_pxe.interface }})
-    command: bash -c "ifup {{ kubeansi.lan_pxe.interface }}"
-    when: set_ip_pxe.changed
+  
+  - name: Restart network
+    service:
+      name: network
+      state: restarted
 
   - name: Set IP in deploy control interface ({{ kubeansi.lan_control.interface }})
     template:
@@ -80,13 +76,10 @@
       force: yes
     register: set_ip_control
 
-  - name: Stop interface ({{ kubeansi.lan_control.interface }})
-    command: bash -c "ifdown {{ kubeansi.lan_control.interface }}"
-    when: set_ip_control.changed
-
-  - name: Start interface ({{ kubeansi.lan_control.interface }})
-    command: bash -c "ifup {{ kubeansi.lan_control.interface }}"
-    when: set_ip_control.changed
+  - name: Restart network
+    service:
+      name: network
+      state: restarted
 
   - name: Configure /etc/hosts
     lineinfile:
