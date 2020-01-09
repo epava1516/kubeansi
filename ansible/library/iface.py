@@ -65,10 +65,8 @@ class InterfaceManager:
     self.__monitor()
 
   def restartInterface(self):
-    my_cmd = "ifdown {0} && ifup {0}".format(self.interface)
-    p = Popen(my_cmd, shell=True, stdout=PIPE)
-    p.wait()
-    self.__monitor()
+    self.stopInterface()
+    self.startInterface()
 
 
 def run_module():
