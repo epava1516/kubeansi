@@ -63,7 +63,7 @@
       dest: /etc/sysconfig/network-scripts/ifcfg-{{ kubeansi.lan_pxe.interface }}
       force: yes
     register: set_ip_pxe
-  
+
   - name: Restart interface ({{ kubeansi.lan_pxe.interface }})
     iface:
       name: "{{ kubeansi.lan_pxe.interface }}"

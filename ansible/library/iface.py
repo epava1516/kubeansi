@@ -46,6 +46,7 @@ class InterfaceManager:
 
   def __monitor(self):
     p = Popen("ip a s {}".format(self.interface), shell=True, stdout=PIPE)
+    p.wait()
     while p.poll() is None:
       l = p.stdout.readline()
       print(l)
@@ -72,8 +73,8 @@ class InterfaceManager:
 
 def run_module():
   module_args = dict(
-  name=dict(required=True, type='str'),
-  state=dict(required=True, type='str', choices=['started', 'stopped', 'restarted'])
+    name=dict(required=True, type='str'),
+    state=dict(required=True, type='str', choices=['started', 'stopped', 'restarted'])
   )
 
   result = dict(
@@ -96,7 +97,7 @@ def run_module():
   elif module.params['state'] == 'restarted':
     iface.restartInterface()
 
-  if iface.status[0] == iface.status[1]:
+  if iface.status[0] == iface.status[-1]:
     result['changed'] = False
   else:
     result['changed'] = True
