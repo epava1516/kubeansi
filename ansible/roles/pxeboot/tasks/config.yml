@@ -64,10 +64,11 @@
       force: yes
     register: set_ip_pxe
   
-  - name: Restart network
-    service:
-      name: network
+  - name: Restart interface ({{ kubeansi.lan_pxe.interface }})
+    iface:
+      name: "{{ kubeansi.lan_pxe.interface }}"
       state: restarted
+    when: set_ip_pxe.changed
 
   - name: Set IP in deploy control interface ({{ kubeansi.lan_control.interface }})
     template:
@@ -76,10 +77,11 @@
       force: yes
     register: set_ip_control
 
-  - name: Restart network
-    service:
-      name: network
+  - name: Restart interface ({{ kubeansi.lan_control.interface }})
+    iface:
+      name: "{{ kubeansi.lan_control.interface }}"
       state: restarted
+    when: set_ip_control.changed
 
   - name: Configure /etc/hosts
     lineinfile:
