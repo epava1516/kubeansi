@@ -1,7 +1,7 @@
 #!/bin/python3
 
 from subprocess import Popen, PIPE
-from ansible.module_utils.basic import AnsibleModuletime
+from ansible.module_utils.basic import AnsibleModule
 
 ANSIBLE_METADATA = {
   'metadata_version': '1',
