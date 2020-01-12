@@ -20,7 +20,7 @@
 
     lans:
       control:
-        lan: 192.168.79.0
+        lan: 192.168.25.0
         prefix: 24
       # external:
       #   lan: 192.168.1.0

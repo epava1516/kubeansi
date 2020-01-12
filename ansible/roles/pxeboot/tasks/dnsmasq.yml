@@ -34,8 +34,13 @@
     register: dnsmasq_service
 
   - name: Reload systemd
-    command: systemctl daemon-reload
+    systemd:
+      daemon_reload: yes
     when: dnsmasq_service.changed
+
+  # - name: Reload systemd
+  #   command: systemctl daemon-reload
+  #   when: dnsmasq_service.changed
 
   - name: dnsmasq set file {{ v_tftpboot.dir }}/pxelinux.cfg/default
     template:

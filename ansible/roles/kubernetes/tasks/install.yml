@@ -42,5 +42,5 @@
       group: root
 
   - name: Install calico pod network
-    command: kubectl create -f https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/hosted/calico.yaml
+    command: kubectl create -f https://docs.projectcalico.org/v3.9/manifests/calico.yaml
 ...

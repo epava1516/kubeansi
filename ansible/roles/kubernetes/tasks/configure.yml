@@ -30,8 +30,8 @@
   - name: "Build hosts file"
     lineinfile:
       dest: /etc/hosts 
-      regexp: '.*{{ v_network[inventory_hostname] }}$'
-      line: "{{ v_network_node[item]._ipv4 }} {{ v_network[inventory_hostname] }}"
+      regexp: '.*{{ ansible_hostname }}$'
+      line: "{{ v_network_node[item]._ipv4 }} {{ ansible_hostname }}"
       state: present
     with_items: "{{v_network_node}}"
     when: v_network_node[item]._use == 'control'

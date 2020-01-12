@@ -31,13 +31,10 @@
       - v_network_node[item]._use != 'pxe'
     register: r_cambiados
 
-  - name: Bajar los interfaces modificados
-    command: "ifdown {{item.item}}"
-    with_items: "{{r_cambiados.results}}"
-    when: item.changed
-
-  - name: Subir los interfaces modificados
-    command: "ifup {{item.item}}"
+  - name: Reiniciar las interfaces modificados
+    iface:
+      name: "{{item.item}}"
+      state: restarted
     with_items: "{{r_cambiados.results}}"
     when: item.changed
 
