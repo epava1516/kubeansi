@@ -7,13 +7,10 @@
     timezone:
       name: UTC
 
-  - name: Ensure Selinux Disabled
-    selinux: state=disabled 
-    when: ansible_virtualization_type != 'lxc'
-
   - name: Disable selinux
     selinux:
       state: disabled
+    when: ansible_virtualization_type != 'lxc'
 
   - name: Disable DNS in sshd
     lineinfile:
