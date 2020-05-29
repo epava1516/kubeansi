@@ -1,11 +1,11 @@
-DEVICE={{ kubeansi.lan_control.interface }}
+DEVICE={{ kubeansi.lan_internal.interface }}
 NAME=control
 TYPE=Ethernet
 BOOTPROTO=static
-IPADDR={{ kubeansi.lan_control.ip }}
-PREFIX={{ (kubeansi.lan_control.ip + '/' + kubeansi.lan_control.netmask) | ipaddr('prefix') }}
-{% if kubeansi.lan_control.gateway is defined and kubeansi.lan_control.gateway is not none and kubeansi.lan_control.gateway != false %}
-GATEWAY={{ kubeansi.lan_control.gateway }}
+IPADDR={{ kubeansi.lan_internal.ip }}
+PREFIX={{ (kubeansi.lan_internal.ip + '/' + kubeansi.lan_internal.netmask) | ipaddr('prefix') }}
+{% if kubeansi.lan_internal.gateway is defined and kubeansi.lan_internal.gateway is not none and kubeansi.lan_internal.gateway != false %}
+GATEWAY={{ kubeansi.lan_internal.gateway }}
 DEFROUTE=yes
 {% else %}
 DEFROUTE=no

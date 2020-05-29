@@ -70,16 +70,16 @@
       state: restarted
     when: set_ip_pxe.changed
 
-  - name: Set IP in deploy control interface ({{ kubeansi.lan_control.interface }})
+  - name: Set IP in deploy control interface ({{ kubeansi.lan_internal.interface }})
     template:
       src: ifcfg-kube-control.j2
-      dest: /etc/sysconfig/network-scripts/ifcfg-{{ kubeansi.lan_control.interface }}
+      dest: /etc/sysconfig/network-scripts/ifcfg-{{ kubeansi.lan_internal.interface }}
       force: yes
     register: set_ip_control
 
-  - name: Restart interface ({{ kubeansi.lan_control.interface }})
+  - name: Restart interface ({{ kubeansi.lan_internal.interface }})
     iface:
-      name: "{{ kubeansi.lan_control.interface }}"
+      name: "{{ kubeansi.lan_internal.interface }}"
       state: restarted
     when: set_ip_control.changed
 
