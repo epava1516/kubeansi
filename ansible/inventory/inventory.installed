@@ -35,7 +35,8 @@ for line in bash_out_list:
         servers['nodos']['hosts'].append(name)
         servers['_meta']['hostvars'].update({name:{'ansible_host':ip}})
 
-if args.list:
-    print(servers)
-else:
-    print(len(servers['nodos']['hosts']))
+print(servers)
+#if args.list:
+#    print(servers)
+#else:
+#    print(len(servers['nodos']['hosts']))
