@@ -42,3 +42,7 @@
   template:
     dest: /home/origin/.ssh/config
     src: master_ssh.j2
+
+- name: Install openshift-ansible on master node
+  yum:
+    name: openshift-ansible
