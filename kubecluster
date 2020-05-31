@@ -36,7 +36,7 @@ function help_show() {
     echo -e "\t$PROG boot install [--reinstall] node1 [node...] \t\t\t\t\t\t === Install nodes and more actions"
 	echo -e "\t$PROG boot destroy [--yes-i-really-really-mean-it] node1 [node...] \t === Return nodes to bootstrap"
 	echo -e "\t$PROG boot reconfigure-network node1 [node...] \t\t\t\t\t\t === Reconfigure network/disk node configuration"
-	echo -e "\t$PROG boot reconfigure-storage [--delete-ceph] node1 [node...] \t\t\t\t\t\t === Reconfigure network/disk node configuration"
+	echo -e "\t$PROG boot reconfigure-storage [--delete-ceph] node1 [node...] \t\t\t\t\t === Reconfigure network/disk node configuration"
     echo -e "\t$PROG boot reboot node1 [node...] \t\t\t\t\t\t\t\t\t === Reboot nodes"
 	echo -e ""
 	exit 1
@@ -272,7 +272,7 @@ function server_remove() {
 function boot_get-config() {
 	NAMES=`echo $* | tr ' ' ,`
 	[ -z "$NAMES" ] && LIMIT="" || LIMIT="--limit $NAMES"
-	ansible-playbook -i $DIR/ansible/inventory/inventory.all $LIMIT $DIR/ansible/get-config.yml
+	ansible-playbook -i $DIR/ansible/inventory/inventory.discover $LIMIT $DIR/ansible/get-config.yml
 }
 
 function boot_edit-config() {
