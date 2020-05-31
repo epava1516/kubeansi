@@ -12,11 +12,11 @@ args = parser.parse_args()
 bash_out = subprocess.Popen("cat /etc/nodes", shell=True, stdout=subprocess.PIPE).stdout.read()
 
 servers = {
-    'nodos': {
-        'hosts': []
+    "nodos": {
+        "hosts": []
     },
-    '_meta': {
-        'hostvars': {}
+    "_meta": {
+        "hostvars": {}
     }
 }
 
@@ -33,11 +33,11 @@ for line in bash_out_list:
     if 3 < len(v):
         name = v[0]
         ip = v[2]
-        servers['nodos']['hosts'].append(name)
-        servers['_meta']['hostvars'].update({name:{'ansible_host':ip}})
+        servers["nodos"]["hosts"].append(name)
+        servers["_meta"]["hostvars"].update({name:{'ansible_host':ip}})
 
 print(servers)
-# if args.list:
-#     print(servers)
-# else:
-#     print(len(servers['nodos']['hosts']))
+if args.list:
+    print(servers)
+else:
+    print(len(servers['nodos']['hosts']))
