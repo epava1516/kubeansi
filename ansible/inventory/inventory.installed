@@ -12,7 +12,7 @@ with open('/etc/nodes', 'r') as file:
     bash_out = file.read()
 
 servers = {
-    'nodos': {
+    'nodes': {
         'hosts': []
     },
     '_meta': {
@@ -34,10 +34,10 @@ for line in bash_out_list:
         if 3 < len(v):
             name = v[0]
             ip = v[2]
-            servers['nodos']['hosts'].append(name)
+            servers['nodes']['hosts'].append(name)
             servers['_meta']['hostvars'].update({name:{'ansible_host':ip}})
 
 if args.list:
-    print(servers)
+    print(json.dumps(servers))
 else:
-    print(len(servers['nodos']['hosts']))
+    print(len(servers['nodes']['hosts']))
