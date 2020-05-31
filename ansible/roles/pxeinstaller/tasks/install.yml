@@ -91,7 +91,7 @@
 
   - name: Reboot servers timeout 20 min
     reboot:
-      reboot_timeout: 1200
+      reboot_timeout: 2400
 
   - name: Cargar la variable ansible_local
     setup:
