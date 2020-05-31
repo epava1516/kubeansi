@@ -1,6 +1,6 @@
 ---
   - name: Reconfigure network interfaces
-    hosts: nodos
+    hosts: nodes
     gather_facts: true
     tasks:
 

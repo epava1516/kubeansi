@@ -1,6 +1,6 @@
 ---
   - name: Kubedeploy
-    hosts: nodos
+    hosts: nodes
     gather_facts: true
     tasks:
       - name: config

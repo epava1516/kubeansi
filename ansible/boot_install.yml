@@ -1,6 +1,6 @@
 ---
   - name: Provisionar nodo
-    hosts: nodos
+    hosts: nodes
     gather_facts: true
     tasks:
       - name: Verificar que el nodo esta en bootstrap

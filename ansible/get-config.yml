@@ -1,6 +1,6 @@
 ---
   - name: Get setup from nodes
-    hosts: nodos
+    hosts: nodes
     gather_facts: true
     tasks:
       - include_tasks: tasks/get-storage.yml

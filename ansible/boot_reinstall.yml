@@ -1,6 +1,6 @@
 ---
   - name: Reinstalar nodo
-    hosts: nodos
+    hosts: nodes
     gather_facts: true
     vars:
       v_reinstall: true
