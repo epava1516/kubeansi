@@ -1,0 +1,5 @@
+{% for host in node.hosts %}
+Host {{ ansible_hostname }}
+    Hostname {{ ansible_hostname }}.{{ kubeansi.domain }}
+    User origin
+{% endfor %}

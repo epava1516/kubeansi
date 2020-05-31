@@ -36,7 +36,7 @@ services --enabled=network
 timezone --utc Etc/UTC
 
 # Selinux
-selinux --disabled
+# selinux --disabled
 
 # System bootloader configuration
 bootloader --location=mbr --boot-drive={{v_disk_so}}
@@ -76,7 +76,7 @@ user --name=bastion --iscrypted --password=$6$fsVuexoAOXu30Kzw$evGtJHcybFEaJWzCo
 %end
 
 %post
-sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+#sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
 echo -e "\n{{kubeansi.lan_pxe.ip}} {{kubeansi.name}} {{kubeansi.name}}.{{kubeansi.domain}}\n" >> /etc/hosts
 
 mkdir -p -m 0700 /root/.ssh

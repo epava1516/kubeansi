@@ -1,0 +1,42 @@
+[OSEv3:children]
+masters
+nodes
+etcd
+
+[OSEv3:vars]
+ansible_ssh_user=origin
+ansible_become=true
+openshift_deployment_type=origin
+
+# use HTPasswd for authentication
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider'}]
+# define default sub-domain for Master node
+openshift_master_default_subdomain=apps.{{ kubeansi.domain }}
+# allow unencrypted connection within cluster
+openshift_docker_insecure_registries=172.30.0.0/16
+
+[masters]
+{% for host in ansible.master %}
+{{ ansible_hostname }}.{{ kubeansi.domain }} openshift_schedulable=true containerized=false
+{% endfor %}
+
+[etcd]
+{% for host in ansible.master %}
+{{ ansible_hostname }}.{{ kubeansi.domain }}
+{% endfor %}
+
+[nodes]
+# defined values for [openshift_node_group_name] in the file below
+# [/usr/share/ansible/openshift-ansible/roles/openshift_facts/defaults/main.yml]
+{% for host in ansible %}
+{% if hostname.master %}
+{{ ansible_hostname }}.{{ kubeansi.domain }} openshift_node_group_name='node-config-master-infra'
+{% elif %}
+{{ ansible_hostname }}.{{ kubeansi.domain }} openshift_node_group_name='node-config-compute'
+{% endif %}
+{% endfor %}
+
+# if you'd like to separate Master node feature and Infra node feature, set like follows
+# ctrl.srv.world openshift_node_group_name='node-config-master'
+# node01.srv.world openshift_node_group_name='node-config-compute'
+# node02.srv.world openshift_node_group_name='node-config-infra'

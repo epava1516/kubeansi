@@ -1,0 +1,44 @@
+---
+- name: Create origin user
+  user:
+    name: origin
+    comment: okd-user
+    #password: undefined # not required. Optionally set the user's password to this crypted value.,On macOS systems, this value has to be cleartext. Beware of security issues.,See U(https://docs.ansible.com/ansible/faq.html#how-do-i-generate-crypted-passwords-for-the-user-module) for details on various ways to generate these password values.
+    generate_ssh_key: yes
+    ssh_key_comment: okd-user
+    state: present
+
+- name: Copy openshift sudoer conf
+  template:
+    dest: /etc/sudoers.d/openshift
+    src: openshift.j2
+
+- name: Set firewalld config
+  firewalld:
+    state: enabled
+    service: ssh
+    immediate: yes
+    permanent: yes
+
+- name: Install packages
+  yum:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - centos-release-openshift-origin311
+    - epel-release
+    - docker
+    - git
+    - pyOpenSSL
+
+- name: Start service
+  service:
+    name: docker
+    state: start
+    enabled: yes
+
+- name: ssh config master
+  template:
+    dest: /home/origin/.ssh/config
+    src: master_ssh.j2

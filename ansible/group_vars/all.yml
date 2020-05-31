@@ -75,14 +75,14 @@
       - yum-utils
       - device-mapper-persistent-data
       - lvm2
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
-      - kubelet
-      - kubeadm
-      - kubectl
+#      - docker-ce
+#      - docker-ce-cli
+#      - containerd.io
+#      - kubelet
+#      - kubeadm
+#      - kubectl
 #
-      - -NetworkManager*
+#      - -NetworkManager*
       - -cloud-init
       - -firewalld
       - -iwl*firmware

@@ -10,7 +10,7 @@ Este proyecto intenta automatizar el despliegue de clusters con kubernetes, y qu
 ### Instalacion base
 ```console
 [root@node ~]# yum install -y epel-release
-[root@node ~]# yum install -y git python-netaddr
+[root@node ~]# yum install -y git python-netaddr python3
 [root@node ~]# yum update -y
 [root@node ~]# reboot
 ```
@@ -60,3 +60,8 @@ fatal: [localhost]: FAILED! => {"changed": false, "msg": "AnsibleFilterError: Th
 **Al volver a ejecutar no vuelve a suceder**
 
 El fallo se debe a la supuesta falta del paquete "python-netaddr" el cual es instalado en el sexto task, tras fallar parece ser capaz de inicializar dicho paquete al volver a lanzar la ejecución, pero esto no debería suceder, por lo que su instalación tendrá que realizarse durante los preparativos al git clone **DE MOMENTO**
+
+
+
+
+**No instalar los kubes ni los dockers durante el PXE**
