@@ -1,18 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import subprocess
 import argparse
+import json
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--count', action='store_true', required=False, dest='count')
-parser.add_argument('--list', action='store_true', required=False, dest='list')
+parser.add_argument('-l', '--list', action='store_true', required=False, dest='list')
 args = parser.parse_args()
 
-#bash_out = subprocess.Popen("egrep 'bootstrap|installed' /etc/nodes", shell=True, stdout=subprocess.PIPE).stdout.read()
-bash_out = subprocess.Popen("cat /etc/nodes", shell=True, stdout=subprocess.PIPE).stdout.read()
+with open('/etc/nodes', 'r') as file:
+    bash_out = file.read()
 
 servers = {
-    "nodos": {
+    "nodes": {
         "hosts": []
     },
     "_meta": {
@@ -26,18 +26,15 @@ if '\\n' in bash_out:
 else:
     bash_out_list = bash_out.split('\n')
 
-server_list = []
-
 for line in bash_out_list:
     v=line.split(' ')
     if 3 < len(v):
         name = v[0]
         ip = v[2]
-        servers["nodos"]["hosts"].append(name)
-        servers["_meta"]["hostvars"].update({name:{'ansible_host':ip}})
+        servers['nodes']['hosts'].append(name)
+        servers['_meta']['hostvars'].update({name:{"ansible_host":ip}})
 
-print(servers)
 if args.list:
-    print(servers)
+    print(json.dumps(servers))
 else:
-    print(len(servers['nodos']['hosts']))
+    print(len(servers['nodes']['hosts']))
